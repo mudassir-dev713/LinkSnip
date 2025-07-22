@@ -18,7 +18,7 @@ import { RealisticGlobe } from '@/components/ui/realistic-globe';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function GlobePage() {
+function GlobePageContent() {
   const searchParams = useSearchParams();
   const [countryData, setCountryData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -368,4 +368,14 @@ export default function GlobePage() {
       </div>
     </div>
   );
+}
+
+export default function GlobePage() {
+  <Suspense
+    fallback={
+      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+    }
+  >
+    <GlobePageContent />
+  </Suspense>;
 }

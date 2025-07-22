@@ -75,11 +75,12 @@ function CheckEmailContent() {
   );
 }
 
-// ✅ Wrap content in Suspense
 export default function CheckEmailPage() {
   return (
     <Suspense
-      fallback={<div className="text-white text-center p-10">Loading...</div>}
+      fallback={
+        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      }
     >
       <CheckEmailContent />
     </Suspense>
