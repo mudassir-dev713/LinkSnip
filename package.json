@@ -86,7 +86,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.1"
   },
-  "overrides": {
-    "napi-postinstall": "0.3.4"
+  "engines": {
+    "node": "18.x"
   }
 }
