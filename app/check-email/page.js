@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
-export default function CheckEmailPage() {
+function CheckEmailContent() {
   const [isVerified, setIsVerified] = useState(false);
   const [pollingStopped, setPollingStopped] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const email = searchParams.get('email'); // must be passed as query param
+  const email = searchParams.get('email');
 
   useEffect(() => {
     if (!email) return;
@@ -20,7 +20,6 @@ export default function CheckEmailPage() {
     const interval = setInterval(async () => {
       const elapsed = Date.now() - startTime;
 
-      // Stop polling after 1 minute (60,000ms)
       if (elapsed >= 60000) {
         clearInterval(interval);
         setPollingStopped(true);
@@ -73,5 +72,16 @@ export default function CheckEmailPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+// ✅ Wrap content in Suspense
+export default function CheckEmailPage() {
+  return (
+    <Suspense
+      fallback={<div className="text-white text-center p-10">Loading...</div>}
+    >
+      <CheckEmailContent />
+    </Suspense>
   );
 }
