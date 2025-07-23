@@ -1,13 +1,14 @@
-"use client";
+'use client';
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import Balancer from 'react-wrap-balancer';
 
 const stats = [
-  { label: "URLs Shortened", value: 2500000, suffix: "+" },
-  { label: "Clicks Tracked", value: 50000000, suffix: "+" },
-  { label: "Active Users", value: 150000, suffix: "+" },
-  { label: "Countries Served", value: 195, suffix: "" }
+  { label: 'URLs Shortened', value: 2500000, suffix: '+' },
+  { label: 'Clicks Tracked', value: 50000000, suffix: '+' },
+  { label: 'Active Users', value: 150000, suffix: '+' },
+  { label: 'Countries Served', value: 195, suffix: '' },
 ];
 
 function AnimatedNumber({ value, duration = 2000 }) {
@@ -53,9 +54,12 @@ export function StatsSection() {
               Worldwide
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Join millions of users who trust LinkSnip for their URL shortening needs.
-          </p>
+          <Balancer>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Join millions of users who trust LinkSnip for their URL shortening
+              needs.
+            </p>
+          </Balancer>
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">

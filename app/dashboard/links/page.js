@@ -305,14 +305,6 @@ export default function MyLinksPage() {
                   <span className="text-sm text-muted-foreground">
                     {selectedLinks.length} of {filteredLinks.length} selected
                   </span>
-                  <div
-                    onClick={() => {
-                      fetchUrlsFromAPI();
-                    }}
-                  >
-                    {' '}
-                    Refresh
-                  </div>
                 </div>
               )}
             </CardContent>

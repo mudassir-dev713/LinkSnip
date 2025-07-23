@@ -1,5 +1,32 @@
 import { Sidebar } from '../components/sidebar';
 import { UrlProvider } from '@/context/urlContext';
+export const metadata = {
+  title: 'Dashboard | LinkSnip',
+  description:
+    'Manage and track your shortened links in one centralized dashboard.',
+  openGraph: {
+    title: 'Dashboard | LinkSnip',
+    description:
+      'Manage and track your shortened links in one centralized dashboard.',
+    url: 'https://urlsnip.vercel.app/dashboard',
+    images: [
+      {
+        url: 'https://urlsnip.vercel.app/screenshots/dashboard.png',
+        width: 1200,
+        height: 630,
+        alt: 'LinkSnip Dashboard',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Dashboard | LinkSnip',
+    description:
+      'Manage and track your shortened links in one centralized dashboard.',
+    images: ['https://urlsnip.vercel.app/screenshots/dashboard.png'],
+  },
+};
+
 export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex overflow-x-hidden">

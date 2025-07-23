@@ -295,9 +295,72 @@ export default function AnalyticsPage() {
             className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
           >
             {loading ? (
-              <div className="col-span-2 lg:col-span-4 flex justify-center items-center h-32">
-                <span className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin inline-block" />
-              </div>
+              <>
+                <div class="animate-pulse h-full bg-primary/10">
+                  <div class="border-0 bg-card/40 backdrop-blur-sm">
+                    <div class="p-3 sm:p-4 lg:p-6">
+                      <div class="flex items-center justify-between">
+                        <div class="min-w-0 flex-1">
+                          <p class="h-4 bg-gray-500 rounded w-full"></p>
+                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
+                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
+                        </div>
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="animate-pulse h-full bg-primary/10">
+                  <div class="border-0 bg-card/40 backdrop-blur-sm">
+                    <div class="p-3 sm:p-4 lg:p-6">
+                      <div class="flex items-center justify-between">
+                        <div class="min-w-0 flex-1">
+                          <p class="h-4 bg-gray-500 rounded w-full"></p>
+                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
+                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
+                        </div>
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="animate-pulse h-full bg-primary/10">
+                  <div class="border-0 bg-card/40 backdrop-blur-sm">
+                    <div class="p-3 sm:p-4 lg:p-6">
+                      <div class="flex items-center justify-between">
+                        <div class="min-w-0 flex-1">
+                          <p class="h-4 bg-gray-500 rounded w-full"></p>
+                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
+                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
+                        </div>
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="animate-pulse h-full bg-primary/10">
+                  <div class="border-0 bg-card/40 backdrop-blur-sm">
+                    <div class="p-3 sm:p-4 lg:p-6">
+                      <div class="flex items-center justify-between">
+                        <div class="min-w-0 flex-1">
+                          <p class="h-4 bg-gray-500 rounded w-full"></p>
+                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
+                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
+                        </div>
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : analytics ? (
               <>
                 <Spotlight

@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
 import { motion } from 'framer-motion';
 import { Link2, Github, Twitter, Linkedin } from 'lucide-react';
+import Balancer from 'react-wrap-balancer';
 
 export function Footer() {
   return (
@@ -20,17 +21,29 @@ export function Footer() {
               <Link2 className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">LinkSnip</span>
             </div>
-            <p className="text-muted-foreground">
-              The modern URL shortener built for teams and individuals who care about design and analytics.
-            </p>
+            <Balancer>
+              <p className="text-muted-foreground">
+                The modern URL shortener built for teams and individuals who
+                care about design and analytics.
+              </p>
+            </Balancer>
             <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Github className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="#"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Linkedin className="h-5 w-5" />
               </a>
             </div>
@@ -46,10 +59,26 @@ export function Footer() {
           >
             <h3 className="font-semibold">Product</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">API</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Analytics</a></li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Features
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Pricing
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  API
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Analytics
+                </a>
+              </li>
             </ul>
           </motion.div>
 
@@ -63,10 +92,26 @@ export function Footer() {
           >
             <h3 className="font-semibold">Company</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  About
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Careers
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Contact
+                </a>
+              </li>
             </ul>
           </motion.div>
 
@@ -80,10 +125,26 @@ export function Footer() {
           >
             <h3 className="font-semibold">Support</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Status</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy</a></li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Help Center
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Status
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-primary transition-colors">
+                  Privacy
+                </a>
+              </li>
             </ul>
           </motion.div>
         </div>
