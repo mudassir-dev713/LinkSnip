@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Spotlight } from './ui/spotlight';
+import { Spotlight as SpotlightNew } from './ui/spotlight-new';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent } from './ui/card';
 import { Switch } from './ui/switch';
+import Balancer from 'react-wrap-balancer';
 
 export function HeroSection() {
   const [url, setUrl] = useState('');
@@ -65,6 +67,12 @@ export function HeroSection() {
 
       {/* Hero Content */}
       <div className="container relative z-10 px-4 mx-auto md:mt-0 mt-20">
+        <SpotlightNew
+          className="-top-20 left-40 md:-top-40 md:left-80 w-[240%]  "
+          fill="white"
+        />
+        <div className="md:h-32 h-24 w-full"></div>
+
         <div className="text-center space-y-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -78,10 +86,12 @@ export function HeroSection() {
                 Style & Analytics
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              Transform long URLs into beautiful, shareable links with powerful
-              analytics and complete control.
-            </p>
+            <Balancer>
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+                Transform long URLs into beautiful, shareable links with
+                powerful analytics and complete control.
+              </p>
+            </Balancer>
           </motion.div>
 
           {/* URL Shortener Card */}
@@ -92,7 +102,7 @@ export function HeroSection() {
             className="max-w-2xl mx-auto"
           >
             <Spotlight
-              className="p-8"
+              className="md:p-8 px-4 py-6"
               spotlightColor="rgba(59, 130, 246, 0.15)"
             >
               <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
