@@ -32,12 +32,12 @@ export function VerificationEmail(verifyUrl) {
                     </a>
                   </p>
                   <p>If you didn’t create an account, you can safely ignore this email.</p>
-                  <p style="margin-top: 30px;">Best regards,<br /><strong>Your App Team</strong></p>
+                  <p style="margin-top: 30px;">Best regards,<br /><strong>LinkSnip Team</strong></p>
                 </td>
               </tr>
               <tr>
                 <td style="font-size: 12px; color: #999999; text-align: center; padding-top: 40px;">
-                  © ${new Date().getFullYear()} YourApp Inc. All rights reserved.
+                  © ${new Date().getFullYear()}LinkSnip Inc. All rights reserved.
                 </td>
               </tr>
             </table>
