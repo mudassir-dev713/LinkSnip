@@ -1,24 +1,43 @@
-import { withAuth } from 'next-auth/middleware';
+import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
 
-export default withAuth({
-  // Middleware will protect these routes:
-  // This applies to both pages and API routes
-  callbacks: {
-    authorized: ({ token }) => !!token, // Only allow if user is logged in
-  },
-  pages: {
-    signIn: '/login', // custom login route
-  },
-});
+const protectedRoutes = [
+  '/dashboard',
+  '/profile',
+  '/settings',
+  '/api/protected',
+];
+
+const publicRoutes = ['/login', '/signup', '/'];
+
+export async function middleware(req) {
+  const token = await getToken({ req });
+  const { pathname } = req.nextUrl;
+
+  // Redirect unauthenticated users trying to access protected routes
+  if (protectedRoutes.some((route) => pathname.startsWith(route)) && !token) {
+    const loginUrl = new URL('/login', req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated users away from public routes
+  if (publicRoutes.includes(pathname) && token) {
+    const dashboardUrl = new URL('/dashboard', req.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  // Allow all other requests
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
-    // Protect all routes under /dashboard, /profile, /settings, etc.
-    // '/dashboard/:path*',
+    '/dashboard/:path*',
     '/profile/:path*',
     '/settings/:path*',
-
-    // Protect specific API routes
     '/api/protected/:path*',
+    '/login',
+    '/signup',
+    '/', // homepage
   ],
 };

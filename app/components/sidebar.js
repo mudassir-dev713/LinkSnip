@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
 import { ThemeToggle } from './theme-toggle';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 const sidebarItems = [
   {
@@ -158,7 +158,7 @@ export function Sidebar() {
               variant="ghost"
               className="w-full justify-start text-muted-foreground hover:text-destructive"
               onClick={() => {
-                // Handle logout
+                signOut({ callbackUrl: '/' });
                 window.location.href = '/';
               }}
             >

@@ -54,12 +54,12 @@ export function StatsSection() {
               Worldwide
             </span>
           </h2>
-          <Balancer>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <Balancer>
               Join millions of users who trust LinkSnip for their URL shortening
               needs.
-            </p>
-          </Balancer>
+            </Balancer>
+          </p>
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">

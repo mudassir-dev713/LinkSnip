@@ -86,12 +86,12 @@ export function HeroSection() {
                 Style & Analytics
               </span>
             </h1>
-            <Balancer>
-              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+              <Balancer>
                 Transform long URLs into beautiful, shareable links with
                 powerful analytics and complete control.
-              </p>
-            </Balancer>
+              </Balancer>
+            </p>
           </motion.div>
 
           {/* URL Shortener Card */}
