@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import User from '@/models/User';
 import { NextResponse } from 'next/server';
 import { loginSchema } from '@/schema/loginSchema';
+import { dbConnect } from '@/lib/dbConnect';
 
 export const authOptions = {
   providers: [
@@ -17,7 +18,7 @@ export const authOptions = {
         if (!parsed.success) {
           throw new Error(parsed.error.errors[0].message); // Send first validation error
         }
-
+        await dbConnect();
         const { email, password } = parsed.data;
 
         const user = await User.findOne({ email });

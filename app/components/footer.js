@@ -21,12 +21,12 @@ export function Footer() {
               <Link2 className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">LinkSnip</span>
             </div>
-            <Balancer>
-              <p className="text-muted-foreground">
+            <p className="text-muted-foreground">
+              <Balancer>
                 The modern URL shortener built for teams and individuals who
                 care about design and analytics.
-              </p>
-            </Balancer>
+              </Balancer>
+            </p>
             <div className="flex space-x-4">
               <a
                 href="#"

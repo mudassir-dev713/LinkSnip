@@ -77,12 +77,12 @@ export function FeaturesSection() {
               Modern Link Management
             </span>
           </h2>
-          <Balancer>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <Balancer>
               Everything you need to create, manage, and track your shortened
               URLs with professional-grade tools.
-            </p>
-          </Balancer>
+            </Balancer>
+          </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -106,11 +106,9 @@ export function FeaturesSection() {
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Balancer>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </Balancer>
+                    <p className="text-muted-foreground leading-relaxed">
+                      <Balancer>{feature.description}</Balancer>
+                    </p>
                   </CardContent>
                 </Card>
               </Spotlight>

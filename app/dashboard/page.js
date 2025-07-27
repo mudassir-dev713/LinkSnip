@@ -33,37 +33,6 @@ const BASE_URL =
     ? window.location.origin
     : process.env.NEXT_PUBLIC_BASE_URL;
 
-const stats = [
-  {
-    title: 'Total Links',
-    value: '24',
-    change: '+12%',
-    icon: BarChart3,
-    color: 'text-blue-500',
-  },
-  {
-    title: 'Total Clicks',
-    value: '12.5K',
-    change: '+18%',
-    icon: TrendingUp,
-    color: 'text-green-500',
-  },
-  {
-    title: 'Unique Visitors',
-    value: '8.2K',
-    change: '+7%',
-    icon: Users,
-    color: 'text-purple-500',
-  },
-  {
-    title: 'Countries',
-    value: '45',
-    change: '+3',
-    icon: Globe,
-    color: 'text-orange-500',
-  },
-];
-
 export default function DashboardPage() {
   const [url, setUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
@@ -475,41 +444,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </Spotlight>
-        </motion.div>
-
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {stats.map((stat, index) => (
-            <Spotlight
-              key={index}
-              className="h-full"
-              spotlightColor="rgba(139, 92, 246, 0.1)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {stat.title}
-                      </p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                      <p className={`text-sm ${stat.color}`}>{stat.change}</p>
-                    </div>
-                    <div
-                      className={`w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center`}
-                    >
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Spotlight>
-          ))}
         </motion.div>
       </div>
     </>

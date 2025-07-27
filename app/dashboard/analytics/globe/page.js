@@ -73,8 +73,8 @@ function GlobePageContent() {
           className="mb-8"
         >
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard/analytics">
+            <div className="flex flex-col   gap-4">
+              <Link href="/dashboard/analytics ">
                 <Button
                   variant="outline"
                   size="sm"
@@ -119,7 +119,7 @@ function GlobePageContent() {
             </Card>
 
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardContent className="p-4">
+              <CardContent className="p-4 flex items-center">
                 <div className="flex items-center space-x-2">
                   <GlobeIcon className="h-5 w-5 text-green-400" />
                   <div>
@@ -371,11 +371,13 @@ function GlobePageContent() {
 }
 
 export default function GlobePage() {
-  <Suspense
-    fallback={
-      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-    }
-  >
-    <GlobePageContent />
-  </Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      }
+    >
+      <GlobePageContent />
+    </Suspense>
+  );
 }
