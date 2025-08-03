@@ -158,6 +158,7 @@ export function Sidebar() {
               variant="ghost"
               className="w-full justify-start text-muted-foreground hover:text-destructive"
               onClick={() => {
+                localStorage.removeItem('urls');
                 signOut({ callbackUrl: '/' });
                 window.location.href = '/';
               }}

@@ -33,11 +33,9 @@ export default function DashboardLayout({ children }) {
       <div className=" md:block w-0 md:w-72">
         <Sidebar />
       </div>
-      <UrlProvider>
-        <main className="flex-1 min-w-0 mt-10 max-w-screen overflow-x-hidden">
-          {children}
-        </main>
-      </UrlProvider>
+      <main className="flex-1 min-w-0 mt-10 max-w-screen overflow-x-hidden">
+        {children}
+      </main>
     </div>
   );
 }

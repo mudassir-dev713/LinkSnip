@@ -185,12 +185,12 @@ export default function DashboardPage() {
                 Manage your shortened URLs and track performance
               </p>
             </div>
-            <div className="flex items-center space-x-2">
+            {/* <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm">
                 <Calendar className="h-4 w-4 mr-2" />
                 Last 30 days
               </Button>
-            </div>
+            </div> */}
           </div>
         </motion.div>
 

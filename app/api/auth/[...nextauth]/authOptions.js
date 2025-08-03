@@ -4,6 +4,7 @@ import User from '@/models/User';
 import { NextResponse } from 'next/server';
 import { loginSchema } from '@/schema/loginSchema';
 import { dbConnect } from '@/lib/dbConnect';
+import { cookies } from 'next/headers';
 
 export const authOptions = {
   providers: [
@@ -35,7 +36,7 @@ export const authOptions = {
         if (!isValid) {
           throw new Error('Email or Password is Incorrect');
         }
-
+        cookies().delete('anonId');
         // Remove sensitive info
         const { password: _, ...userWithoutPassword } = user.toObject();
 
