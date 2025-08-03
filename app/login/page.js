@@ -66,6 +66,7 @@ export default function LoginPage() {
     if (res?.error) {
       setError(res.error);
     } else {
+      localStorage.removeItem('urls');
       router.push('/dashboard');
     }
   };

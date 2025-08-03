@@ -46,6 +46,16 @@ export default function MyLinksPage() {
   const [selectedLinks, setSelectedLinks] = useState([]);
   const { urls, fetchUrlsFromAPI, setUrls } = useUrls();
   const [refreshLoading, setRefreshLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const storedUrls = localStorage.getItem('urls');
+    if (storedUrls) {
+      setUrls(JSON.parse(storedUrls));
+    } else {
+      fetchUrlsFromAPI();
+    }
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshLoading(true);
@@ -450,6 +460,29 @@ export default function MyLinksPage() {
                             <p className="text-sm text-muted-foreground truncate">
                               {link.fullUrl}
                             </p>
+                            {link.password && (
+                              <p className="text-sm text-muted-foreground truncate flex gap-8 items-center">
+                                <div>
+                                  Password: &nbsp;
+                                  {showPassword
+                                    ? link?.password
+                                    : link?.password
+                                        ?.split('')
+                                        ?.map((char, index) => (
+                                          <span key={index}>*</span>
+                                        ))}
+                                </div>
+                                <span
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </span>
+                              </p>
+                            )}
 
                             <div className="flex flex-wrap gap-1">
                               {link.tags?.map((tag) => (
@@ -466,10 +499,12 @@ export default function MyLinksPage() {
 
                         {/* Actions */}
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
-                            <BarChart3 className="h-3 w-3 mr-1" />
-                            Analytics
-                          </Button>
+                          <Link href={`/dashboard/analytics/`}>
+                            <Button size="sm" variant="outline">
+                              <BarChart3 className="h-3 w-3 mr-1" />
+                              Analytics
+                            </Button>
+                          </Link>
                           <Button size="sm" variant="outline">
                             <Edit className="h-3 w-3 mr-1" />
                             Edit

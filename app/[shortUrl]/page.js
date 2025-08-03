@@ -23,6 +23,7 @@ async function generateMetadata({ params }) {
 export default function UrlInfoPage({ params }) {
   const [urlData, setUrlData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');
   const [verified, setVerified] = useState(false);
@@ -56,7 +57,7 @@ export default function UrlInfoPage({ params }) {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+    setSubmitLoading(true);
     const res = await fetch(`/api/verify-password/${params.shortUrl}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -64,6 +65,7 @@ export default function UrlInfoPage({ params }) {
     });
 
     const result = await res.json();
+    setSubmitLoading(false);
 
     if (result.success) {
       setVerified(true);
@@ -235,7 +237,11 @@ export default function UrlInfoPage({ params }) {
                     autoFocus
                   />
                   {error && <p className="text-destructive text-sm">{error}</p>}
-                  <Button type="submit" className="w-full">
+                  <Button
+                    disabled={submitLoading}
+                    type="submit"
+                    className="w-full"
+                  >
                     Submit
                   </Button>
                 </form>

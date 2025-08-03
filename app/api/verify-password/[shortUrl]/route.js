@@ -2,6 +2,7 @@ import { dbConnect } from '@/lib/dbConnect';
 import ShortUrl from '@/models/ShortUrl';
 import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
+import { url } from 'node:inspector';
 
 export async function POST(req, { params }) {
   try {
@@ -9,7 +10,6 @@ export async function POST(req, { params }) {
     const body = await req.json();
     const { password } = body;
     const shortUrl = await params;
-    console.log('Verifying password for short URL:', shortUrl);
     const urlDoc = await ShortUrl.findOne({
       shortUrl: shortUrl.shortUrl,
     });
@@ -19,9 +19,7 @@ export async function POST(req, { params }) {
         { status: 400 }
       );
     }
-
-    const isMatch = await bcrypt.compare(password, urlDoc.password);
-    if (!isMatch) {
+    if (!(password === urlDoc.password)) {
       return NextResponse.json(
         { success: false, error: 'Incorrect password' },
         { status: 401 }

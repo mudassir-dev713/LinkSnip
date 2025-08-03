@@ -11,10 +11,20 @@ export async function GET(request) {
   if (!session && !anonId) {
     return NextResponse.json({ error: 'User not Found' }, { status: 401 });
   }
-  const userId = session ? session.user.id : anonId.value;
-  const urls = await ShortUrl.find({ user: userId }).sort({
-    createdAt: -1,
-  });
+  let urls = [];
+  if (session?.user?.id) {
+    const userId = session.user.id;
 
+    urls = await ShortUrl.find({ user: userId }).sort({
+      createdAt: -1,
+    });
+  }
+  if (!session?.user?.id && anonId.value) {
+    const userId = anonId.value;
+
+    urls = await ShortUrl.find({ anonId: userId }).sort({
+      createdAt: -1,
+    });
+  }
   return NextResponse.json({ urls }, { status: 200 });
 }

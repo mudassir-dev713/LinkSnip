@@ -38,8 +38,6 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { LineChart } from '@/components/ui/line-chart';
 import { useUrls } from '@/context/urlContext';
-import Link from 'next/link';
-import { GlobeIcon } from 'lucide-react';
 
 // Icon mappings
 const deviceIcons = { Smartphone, Monitor, Tablet, HelpCircle };
@@ -54,6 +52,18 @@ export default function AnalyticsPage() {
   const [is24HourFormat, setIs24HourFormat] = useState(true);
   const { urls, fetchUrlsFromAPI } = useUrls();
   const [selectedUrl, setSelectedUrl] = useState(null);
+
+  // Add click outside handler for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showUrlDropdown && !event.target.closest('.url-dropdown-container')) {
+        setShowUrlDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUrlDropdown]);
 
   useEffect(() => {
     setUrlsLoading(true);
@@ -78,7 +88,6 @@ export default function AnalyticsPage() {
           setAnalytics(null);
         } else {
           setAnalytics(data);
-          console.log('Analytics data:', data);
         }
         setLoading(false);
       })
@@ -131,7 +140,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex flex-col">
-        <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -187,7 +196,7 @@ export default function AnalyticsPage() {
               <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
                 <CardContent className="p-3 sm:p-4">
                   {urlsLoading ? (
-                    <div className="flex justify-center items-center h-16">
+                    <div className="flex justify-center items-center h-16 ">
                       <span className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin inline-block" />
                     </div>
                   ) : !urls || urls.length === 0 ? (
@@ -200,18 +209,19 @@ export default function AnalyticsPage() {
                         <label className="text-sm font-medium text-muted-foreground">
                           Analyzing URL:
                         </label>
-                        <div className="">
+                        <div className="relative url-dropdown-container">
                           <Button
                             variant="ghost"
                             onClick={() => setShowUrlDropdown(!showUrlDropdown)}
-                            className="h-auto p-0 justify-start text-left w-full sm:w-auto"
+                            className="h-auto p-2 justify-start text-left w-full sm:w-auto hover:bg-muted/50 rounded-md"
                           >
-                            <div className="space-y-1">
+                            <div className="space-y-1 ">
                               <div className="font-semibold text-primary">
                                 {selectedUrl
-                                  ? process.env.NEXT_PUBLIC_BASE_URL +
-                                    '/' +
-                                    selectedUrl.shortUrl
+                                  ? selectedUrl.shortUrl &&
+                                    selectedUrl.shortUrl.startsWith('http')
+                                    ? selectedUrl.shortUrl
+                                    : `${process.env.NEXT_PUBLIC_BASE_URL}/${selectedUrl.shortUrl}`
                                   : 'Select URL'}
                               </div>
                               <div className="text-sm text-muted-foreground truncate max-w-full sm:max-w-md">
@@ -221,33 +231,29 @@ export default function AnalyticsPage() {
                             <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
                           </Button>
                           {showUrlDropdown && (
-                            <div className="relative z-50 w-full sm:w-96 max-h-60">
-                              <div className="absolute  top-full left-0 mt-2 w-full sm:w-96 bg-card border border-border rounded-lg shadow-lg z-50 max-h-60 ">
-                                {urls.map((url) => (
-                                  <button
-                                    key={url._id}
-                                    onClick={() => {
-                                      setSelectedUrl(url);
-                                      setShowUrlDropdown(false);
-                                    }}
-                                    className="w-full p-3 text-left hover:bg-muted/50 first:rounded-t-lg last:rounded-b-lg"
-                                  >
-                                    <div className="space-y-1">
-                                      <div className="font-medium text-primary truncate">
-                                        {url.shortUrl}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground truncate">
-                                        {url.title}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {analytics.periodClicks?.toLocaleString() ||
-                                          0}{' '}
-                                        total clicks
-                                      </div>
+                            <div className="  top-full left-0 mt-2 w-full sm:w-96 bg-card border border-border rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-scroll">
+                              {urls.map((url) => (
+                                <button
+                                  key={url._id}
+                                  onClick={() => {
+                                    setSelectedUrl(url);
+                                    setShowUrlDropdown(false);
+                                  }}
+                                  className="w-full p-3 text-left hover:bg-muted/50 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="font-medium text-primary truncate">
+                                      {url.shortUrl &&
+                                        (url.shortUrl.startsWith('http')
+                                          ? url.shortUrl
+                                          : `${process.env.NEXT_PUBLIC_BASE_URL}/${url.shortUrl}`)}
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
+                                    <div className="text-sm text-muted-foreground truncate">
+                                      {url.title}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -292,7 +298,7 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
           >
             {loading ? (
               <>
@@ -497,10 +503,10 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
           >
             {/* Enhanced Click Trends Line Chart */}
-            <div className="xl:col-span-2">
+            <div className="lg:col-span-2">
               <Spotlight
                 className="h-full"
                 spotlightColor="rgba(59, 130, 246, 0.08)"
@@ -529,22 +535,24 @@ export default function AnalyticsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="h-48 sm:h-64 lg:h-80">
+                    <div className="h-48 sm:h-64 lg:h-80 w-full relative">
                       {analytics?.clicksByDate &&
                       analytics.clicksByDate.length > 0 ? (
-                        <LineChart
-                          data={analytics.clicksByDate.map((item) => ({
-                            ...item,
-                            label:
-                              selectedPeriod === '24h'
-                                ? formatTime(item.hour)
-                                : item.label,
-                          }))}
-                          height={selectedPeriod === '24h' ? 250 : 300}
-                          showDots={true}
-                          animate={true}
-                          period={selectedPeriod}
-                        />
+                        <div className="w-full h-full [&_.recharts-tooltip-wrapper]:z-[9999] [&_.recharts-tooltip-cursor]:z-[9998]">
+                          <LineChart
+                            data={analytics.clicksByDate.map((item) => ({
+                              ...item,
+                              label:
+                                selectedPeriod === '24h'
+                                  ? formatTime(item.hour)
+                                  : item.label,
+                            }))}
+                            height={selectedPeriod === '24h' ? 250 : 300}
+                            showDots={true}
+                            animate={true}
+                            period={selectedPeriod}
+                          />
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           No click data available
@@ -571,7 +579,7 @@ export default function AnalyticsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 sm:gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1 sm:gap-2">
                     {analytics?.hourlyHeatmap?.map((hour, index) => {
                       const maxClicks = Math.max(
                         ...(analytics.hourlyHeatmap?.map((h) => h.clicks) || [
@@ -739,18 +747,6 @@ export default function AnalyticsPage() {
                         Top Countries
                       </span>
                     </CardTitle>
-                    <Link
-                      href={`/dashboard/analytics/globe?urlId=${selectedUrl?._id}&period=${selectedPeriod}`}
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center space-x-1 bg-transparent"
-                      >
-                        <GlobeIcon className="h-4 w-4" />
-                        <span className="hidden sm:inline">3D View</span>
-                      </Button>
-                    </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3 sm:space-y-4">

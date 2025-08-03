@@ -28,35 +28,35 @@ export function Navbar() {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            <a
+            <Link
               href="/dashboard"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Dashboard
-            </a>
-            <a
+            </Link>
+            <Link
               href="#features"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               Features
-            </a>
-            <a
-              href="#about"
+            </Link>
+            <Link
+              href="/history"
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
-              About
-            </a>
+              History
+            </Link>
           </nav>
           <div className="flex items-center space-x-2">
             <ThemeToggle />
-            <a href="/login">
+            <Link href="/login">
               <Button variant="outline" size="sm">
                 Sign In
               </Button>
-            </a>
-            <a href="/signup">
+            </Link>
+            <Link href="/signup">
               <Button size="sm">Get Started</Button>
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -83,24 +83,24 @@ export function Navbar() {
         >
           <div className="container py-4 px-4">
             <nav className="flex flex-col space-y-3">
-              <a
+              <Link
                 href="#features"
                 className="transition-colors hover:text-foreground/80 text-foreground/60 py-2"
               >
                 Features
-              </a>
-              <a
+              </Link>
+              <Link
                 href="#pricing"
                 className="transition-colors hover:text-foreground/80 text-foreground/60 py-2"
               >
                 Pricing
-              </a>
-              <a
-                href="#about"
+              </Link>
+              <Link
+                href="/history"
                 className="transition-colors hover:text-foreground/80 text-foreground/60 py-2"
               >
-                About
-              </a>
+                History
+              </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t border-border/40">
                 <Button variant="outline" size="sm">
                   Sign In

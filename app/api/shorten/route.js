@@ -8,7 +8,6 @@ import {
   createShortUrlWithUser,
 } from '@/utils/createShortUrl';
 import { generateAnonId } from '@/utils/helper';
-import bcrypt from 'bcryptjs';
 
 export async function POST(req) {
   try {
@@ -26,17 +25,13 @@ export async function POST(req) {
     await dbConnect();
     const session = await getServerSession(authOptions);
     let shorturl;
-    let hashedPassword = null;
-    if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
     if (session?.user?.id) {
       try {
         shorturl = await createShortUrlWithUser(
           formattedUrl,
           session.user.id,
           customAlias,
-          hashedPassword,
+          password,
           title
         );
       } catch (err) {
@@ -61,7 +56,7 @@ export async function POST(req) {
         );
       }
 
-      const cookieStore = cookies(); // no `await`
+      const cookieStore = await cookies(); // no `await`
       let anonId = cookieStore.get('anonId')?.value;
 
       if (!anonId) {
