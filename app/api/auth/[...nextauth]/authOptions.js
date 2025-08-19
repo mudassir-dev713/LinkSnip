@@ -36,7 +36,8 @@ export const authOptions = {
         if (!isValid) {
           throw new Error('Email or Password is Incorrect');
         }
-        cookies().delete('anonId');
+        const cookieStore = await cookies();
+        cookieStore.delete('anonId');
         // Remove sensitive info
         const { password: _, ...userWithoutPassword } = user.toObject();
 
@@ -46,6 +47,17 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt',
+  },
+  events: {
+    async signOut() {
+      // Clear cookies explicitly
+      const cookies = ['next-auth.session-token', 'next-auth.csrf-token'];
+      cookies.forEach((cookie) => {
+        if (typeof window !== 'undefined') {
+          document.cookie = `${cookie}=; Max-Age=0; path=/`;
+        }
+      });
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

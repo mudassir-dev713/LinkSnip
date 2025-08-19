@@ -11,14 +11,12 @@ export async function DELETE(req) {
     }
 
     await dbConnect();
-
-    // If only one ID (string), convert to array
     const idArray = Array.isArray(ids) ? ids : [ids];
-
     const result = await ShortUrl.deleteMany({ _id: { $in: idArray } });
 
     return NextResponse.json({
-      message: `${result.deletedCount} URL(s) deleted`,
+      deletedCount: result.deletedCount,
+      ids: idArray,
     });
   } catch (error) {
     console.error('Delete error:', error);

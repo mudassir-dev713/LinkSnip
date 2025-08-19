@@ -7,10 +7,6 @@ import {
   Copy,
   ExternalLink,
   BarChart3,
-  TrendingUp,
-  Users,
-  Globe,
-  Calendar,
   Settings,
   RefreshCw,
 } from 'lucide-react';
@@ -25,7 +21,8 @@ import {
 } from '../components/ui/card';
 
 import { useToast } from '@/hooks/use-toast';
-import { useUrls } from '@/context/urlContext';
+import { useShortenUrl } from '@/hooks/useShortenUrl';
+import { useUrls } from '@/hooks/use-urls'; // <-- this fetches all urls
 import Head from 'next/head';
 
 const BASE_URL =
@@ -36,21 +33,31 @@ const BASE_URL =
 export default function DashboardPage() {
   const [url, setUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [shortenLoading, setShortenLoading] = useState(false);
   const [customAlias, setCustomAlias] = useState('');
   const [title, setTitle] = useState('');
   const [password, setPassword] = useState('');
   const { toast } = useToast();
-  const { urls, addNewUrl, fetchUrlsFromAPI } = useUrls();
-  const [refreshLoading, setRefreshLoading] = useState(false);
 
-  useEffect(() => {
-    urls?.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [urls]);
+  // React Query hooks
+  const shortenMutation = useShortenUrl();
+  const {
+    data,
+    isLoading: urlsLoading,
+    isError,
+    refetch,
+    isFetching: refreshLoading,
+  } = useUrls();
 
-  const handleShorten = async () => {
+  const urls = data?.urls || [];
+
+  // Sort newest first
+  const sortedUrls = [...urls].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+
+  const handleShorten = () => {
     if (!url) {
       toast({
         title: 'Error',
@@ -60,63 +67,33 @@ export default function DashboardPage() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/shorten', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url,
-          password: password || undefined,
-          customAlias: customAlias || undefined,
-          title: title || undefined,
-        }),
-      });
-      const data = await response.json();
-      console.log('Short URL response:', data);
-      if (data.shortUrl) {
-        setShortUrl(data.shortUrl);
-        addNewUrl({
-          _id: data._id,
-          title: title || 'Untitled Link',
-          fullUrl: url,
-          shortUrl: data.shortUrl,
-          password: password || null,
-          clicks: 0,
-          status: data.status || '',
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-        });
-        toast({
-          title: 'Success',
-          description: 'Short URL created successfully!',
-          variant: 'default',
-        });
-      } else {
-        setShortUrl('');
-        console.error('Error creating short URL:', data);
-        toast({
-          title: 'Error',
-          description: data?.error || 'Failed to shorten URL.',
-          variant: 'destructive',
-        });
+    setShortenLoading(true);
+    shortenMutation.mutate(
+      { url, customAlias, title, password },
+      {
+        onSuccess: (data) => {
+          setShortUrl(data.shortUrl);
+          setUrl('');
+          setCustomAlias('');
+          setTitle('');
+          setPassword('');
+          toast({
+            title: 'Success',
+            description: 'Short URL created successfully!',
+          });
+          setShortenLoading(false);
+          refetch(); // refresh urls after creating
+        },
+        onError: (error) => {
+          setShortenLoading(false);
+          toast({
+            title: 'Error',
+            description: error.message || 'Something went wrong.',
+            variant: 'destructive',
+          });
+        },
       }
-    } catch (error) {
-      setShortUrl('');
-      toast({
-        title: 'Error',
-        description: error?.message || 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
-    }
-    setIsLoading(false);
-  };
-
-  const handleRefresh = async () => {
-    setRefreshLoading(true);
-    await fetchUrlsFromAPI();
-    setRefreshLoading(false);
+    );
   };
 
   const copyToClipboard = (text) => {
@@ -146,30 +123,8 @@ export default function DashboardPage() {
           name="description"
           content="Manage and track your shortened links in one centralized dashboard."
         />
-        <meta property="og:title" content="Dashboard | LinkSnip" />
-        <meta
-          property="og:description"
-          content="Manage and track your shortened links in one centralized dashboard."
-        />
-        <meta
-          property="og:url"
-          content="https://urlsnip.vercel.app/dashboard"
-        />
-        <meta
-          property="og:image"
-          content="https://urlsnip.vercel.app/screenshots/dashboard.png"
-        />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Dashboard | LinkSnip" />
-        <meta
-          name="twitter:description"
-          content="Manage and track your shortened links in one centralized dashboard."
-        />
-        <meta
-          name="twitter:image"
-          content="https://urlsnip.vercel.app/screenshots/dashboard.png"
-        />
       </Head>
+
       <div className="p-4 md:p-8 space-y-8">
         {/* Header */}
         <motion.div
@@ -178,23 +133,13 @@ export default function DashboardPage() {
           transition={{ duration: 0.6 }}
           className="space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <p className="text-muted-foreground">
-                Manage your shortened URLs and track performance
-              </p>
-            </div>
-            {/* <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Calendar className="h-4 w-4 mr-2" />
-                Last 30 days
-              </Button>
-            </div> */}
-          </div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage your shortened URLs and track performance
+          </p>
         </motion.div>
 
-        {/* Quick URL Shortener */}
+        {/* Quick Shortener */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -221,10 +166,10 @@ export default function DashboardPage() {
                   />
                   <Button
                     onClick={handleShorten}
-                    disabled={!url || isLoading}
-                    className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
+                    disabled={!url || shortenLoading}
+                    className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600"
                   >
-                    {isLoading ? (
+                    {shortenLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>
@@ -234,68 +179,38 @@ export default function DashboardPage() {
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowAdvanced((prev) => !prev)}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    {showAdvanced
-                      ? 'Hide Advanced Options'
-                      : 'Advanced Options'}
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAdvanced((p) => !p)}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  {showAdvanced ? 'Hide Advanced' : 'Advanced Options'}
+                </Button>
+
                 {showAdvanced && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-4 p-4 bg-muted/40 border rounded-lg"
-                  >
-                    <div>
-                      <label className="text-sm font-medium block mb-1">
-                        Custom URL Alias
-                      </label>
-                      <Input
-                        placeholder="Enter custom alias (e.g., promo2025)"
-                        value={customAlias}
-                        onChange={(e) => setCustomAlias(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium block mb-1">
-                        Link Name
-                      </label>
-                      <Input
-                        placeholder="Give this link a name for your dashboard"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium block mb-1">
-                        Password Protection
-                      </label>
-                      <Input
-                        type="password"
-                        placeholder="Optional password to access link"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
-                  </motion.div>
+                  <div className="space-y-3 p-4 bg-muted/40 border rounded-lg">
+                    <Input
+                      placeholder="Custom alias (e.g. promo2025)"
+                      value={customAlias}
+                      onChange={(e) => setCustomAlias(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Name for your dashboard"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Optional password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
                 )}
 
                 {shortUrl && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="p-4 bg-muted/50 rounded-lg space-y-3"
-                  >
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
                         Shortened URL:
@@ -306,19 +221,19 @@ export default function DashboardPage() {
                           variant="outline"
                           onClick={() => copyToClipboard(shortUrl)}
                         >
-                          <Copy className="h-3 w-3 mr-1" />
-                          Copy
+                          <Copy className="h-3 w-3 mr-1" /> Copy
                         </Button>
-                        <Button size="sm" variant="outline">
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Visit
-                        </Button>
+                        <a href={shortUrl} target="_blank" rel="noreferrer">
+                          <Button size="sm" variant="outline">
+                            <ExternalLink className="h-3 w-3 mr-1" /> Visit
+                          </Button>
+                        </a>
                       </div>
                     </div>
                     <div className="p-3 bg-background rounded border font-mono text-sm break-all">
                       {shortUrl}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -342,8 +257,7 @@ export default function DashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleRefresh}
-                    title="Refresh recent links from server"
+                    onClick={() => refetch()}
                     disabled={refreshLoading}
                   >
                     {refreshLoading ? (
@@ -357,89 +271,61 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {urls?.slice(0, 3)?.map((link) => (
-                    <>
-                      {refreshLoading ? (
-                        <div class="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-300 animate-pulse">
-                          <div class="flex-1 min-w-0 space-y-2">
-                            <div class="flex items-center space-x-2">
-                              <div class="h-4 bg-gray-600 rounded w-full truncate"></div>
-                              <div class="h-6 w-6 rounded bg-gray-600"></div>
-                            </div>
-                            <div class="h-4 bg-gray-600 rounded w-full truncate"></div>
-                            <div class="flex items-center space-x-4 text-xs text-gray-400">
-                              <div class="h-4 bg-gray-600 rounded w-1/5"></div>
-                              <div class="h-4 bg-gray-600 rounded w-1/4"></div>
-                              <div class="px-2 py-1 bg-green-500/10 text-green-500 rounded-full">
-                                <div class="h-4 bg-gray-600 rounded w-1/3"></div>
-                              </div>
-                            </div>
-                          </div>
-                          <div class="flex items-center space-x-2">
-                            <div class="h-6 w-24 rounded bg-gray-200"></div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key={link.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0 space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <p className="font-medium text-sm truncate">
-                                {link.shortUrl &&
-                                  (link.shortUrl.startsWith('http')
-                                    ? link.shortUrl
-                                    : `${BASE_URL}/${link.shortUrl}`)}
-                              </p>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  copyToClipboard(
-                                    link.shortUrl &&
-                                      (link.shortUrl.startsWith('http')
-                                        ? link.shortUrl
-                                        : `${BASE_URL}/${link.shortUrl}`)
-                                  )
-                                }
-                                className="h-6 w-6 p-0"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {link.originalUrl}
-                            </p>
-                            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                              <span>{link.clicks} clicks</span>
-
-                              <span>
-                                Created At{' '}
-                                {new Date(link.createdAt).toLocaleDateString(
-                                  undefined,
-                                  {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  }
-                                )}
-                              </span>
-                              <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-full">
-                                {link.status}
-                              </span>
-                            </div>
-                          </div>
+                  {urlsLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading...</p>
+                  ) : isError ? (
+                    <p className="text-sm text-red-500">Failed to fetch URLs</p>
+                  ) : sortedUrls.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No links yet
+                    </p>
+                  ) : (
+                    sortedUrls.slice(0, 3).map((link) => (
+                      <div
+                        key={link.id}
+                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30"
+                      >
+                        <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center space-x-2">
-                            <Button size="sm" variant="outline">
-                              <BarChart3 className="h-3 w-3 mr-1" />
-                              Analytics
+                            <p className="font-medium text-sm truncate">
+                              {link.shortUrl.startsWith('http')
+                                ? link.shortUrl
+                                : `${BASE_URL}/${link.shortUrl}`}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                copyToClipboard(
+                                  link.shortUrl.startsWith('http')
+                                    ? link.shortUrl
+                                    : `${BASE_URL}/${link.shortUrl}`
+                                )
+                              }
+                              className="h-6 w-6 p-0"
+                            >
+                              <Copy className="h-3 w-3" />
                             </Button>
                           </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {link.originalUrl}
+                          </p>
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                            <span>{link.clicks} clicks</span>
+                            <span>
+                              {new Date(link.createdAt).toLocaleDateString()}
+                            </span>
+                            <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-full">
+                              {link.status}
+                            </span>
+                          </div>
                         </div>
-                      )}
-                    </>
-                  ))}
+                        <Button size="sm" variant="outline">
+                          <BarChart3 className="h-3 w-3 mr-1" /> Analytics
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
