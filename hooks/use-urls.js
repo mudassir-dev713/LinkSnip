@@ -1,0 +1,110 @@
+'use client';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// ✅ Fetch URLs from API
+const fetchUrls = async () => {
+  const res = await fetch('/api/get-urls');
+  if (!res.ok) throw new Error('Failed to fetch URLs');
+  return res.json();
+};
+
+export const useUrls = () => {
+  return useQuery({
+    queryKey: ['urls'],
+    queryFn: fetchUrls,
+    staleTime: 1000 * 60 * 20, // 20 min cache
+    retry: 1,
+  });
+};
+
+// ✅ Add new URL (mutation + invalidate cache)
+export const useAddUrl = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newUrlData) => {
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUrlData),
+      });
+      if (!res.ok) throw new Error('Failed to shorten URL');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Optimistically update cache instead of refetch
+      queryClient.setQueryData(['urls'], (old) =>
+        old ? { urls: [data, ...old.urls] } : { urls: [data] }
+      );
+    },
+  });
+};
+
+export const useDeleteUrls = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids) => {
+      const res = await fetch('/api/delete-url', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.isArray(ids) ? ids : [ids] }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.error || 'Failed to delete URLs');
+      }
+      return res.json(); // { ids: [...] }
+    },
+
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: ['urls'] });
+
+      const previousData = queryClient.getQueryData(['urls']);
+
+      queryClient.setQueryData(['urls'], (oldData) => {
+        if (!oldData?.urls) return oldData;
+        const idsArray = Array.isArray(ids) ? ids : [ids];
+        return {
+          ...oldData,
+          urls: oldData.urls.filter((url) => !idsArray.includes(url._id)),
+        };
+      });
+
+      return { previousData };
+    },
+
+    onError: (err, ids, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['urls'], context.previousData);
+      }
+    },
+
+    onSuccess: (data) => {
+      queryClient.setQueryData(['urls'], (oldData) => {
+        if (!oldData?.urls) return oldData;
+        return {
+          ...oldData,
+          urls: oldData.urls.filter((url) => !data.ids.includes(url._id)),
+        };
+      });
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['urls'] });
+    },
+  });
+};
+
+export const useDeleteUrl = () => {
+  const deleteUrls = useDeleteUrls();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      return deleteUrls.mutateAsync([id]);
+    },
+    onSuccess: deleteUrls.onSuccess,
+    onError: deleteUrls.onError,
+  });
+};

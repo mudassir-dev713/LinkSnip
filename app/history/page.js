@@ -1,17 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Search,
-  Filter,
   Plus,
   Copy,
   ExternalLink,
   BarChart3,
   Edit,
   Trash2,
-  MoreVertical,
   Calendar,
   SortAsc,
   SortDesc,
@@ -23,14 +21,10 @@ import {
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '../components/ui/card';
-import { useUrls } from '@/context/urlContext';
+import { Card, CardContent } from '../components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useDeleteUrls, useUrls } from '@/hooks/use-urls';
 import { Navbar } from '../components/navbar';
 
 const BASE_URL =
@@ -39,36 +33,33 @@ const BASE_URL =
     : process.env.NEXT_PUBLIC_BASE_URL;
 
 export default function MyLinksPage() {
-  const [links, setLinks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLinks, setSelectedLinks] = useState([]);
-  const { urls, fetchUrlsFromAPI, setUrls } = useUrls();
-  const [refreshLoading, setRefreshLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
 
-  const handleRefresh = async () => {
-    setRefreshLoading(true);
-    await fetchUrlsFromAPI();
-    setRefreshLoading(false);
-  };
+  const {
+    data,
+    isLoading: urlsLoading,
+    isError,
+    refetch,
+    isFetching: refreshLoading,
+  } = useUrls();
 
-  useEffect(() => {
-    if (Array.isArray(urls)) {
-      setLinks(urls);
-    }
-  }, [urls]);
+  const { mutate: deleteUrls, isPending: isDeleting } = useDeleteUrls();
 
+  const links = data?.urls || [];
   const filteredLinks = links
     .filter((link) => {
       const matchesSearch =
-        link.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        link.originalUrl?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        link.shortUrl?.toLowerCase().includes(searchTerm.toLowerCase());
+        link?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        link?.fullUrl?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        link?.shortUrl?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus =
-        filterStatus === 'all' || link.status === filterStatus;
+        filterStatus === 'all' || link?.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -81,8 +72,13 @@ export default function MyLinksPage() {
       }
       return (aValue - bValue) * modifier;
     });
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
+    toast({
+      title: 'Copied!',
+      description: 'URL copied to clipboard',
+    });
   };
 
   const updateUrlStatus = async (id, newStatus) => {
@@ -95,38 +91,63 @@ export default function MyLinksPage() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setUrls((prevUrls) => {
-        const updatedUrls = prevUrls.map((url) =>
-          url._id === id ? { ...url, status: newStatus } : url
-        );
 
-        localStorage.setItem('urls', JSON.stringify(updatedUrls));
-        return updatedUrls;
+      refetch();
+
+      toast({
+        title: 'Updated',
+        description: `Link ${newStatus === 'active' ? 'activated' : 'paused'} successfully`,
       });
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update link status',
+        variant: 'destructive',
+      });
     }
   };
 
-  const deleteLink = async (idsToDelete) => {
-    const ids = Array.isArray(idsToDelete) ? idsToDelete : [idsToDelete];
+  const deleteLink = (id) => {
+    deleteUrls([id], {
+      onSuccess: (data) => {
+        toast({
+          title: 'Deleted',
+          description: 'Link deleted successfully',
+        });
+        setSelectedLinks((prev) => prev.filter((sid) => sid !== id));
+      },
+      onError: (error) => {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to delete link',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
 
-    try {
-      const res = await fetch('/api/delete-url', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
-      });
+  const bulkDelete = () => {
+    if (selectedLinks.length === 0) return;
+    const confirmed = confirm(`Delete ${selectedLinks.length} link(s)?`);
+    if (!confirmed) return;
 
-      if (!res.ok) throw new Error('Failed to delete');
-
-      const updatedLinks = links.filter((link) => !ids.includes(link._id));
-      setLinks(updatedLinks);
-      localStorage.setItem('urls', JSON.stringify(updatedLinks));
-      setSelectedLinks([]);
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
+    deleteUrls(selectedLinks, {
+      onSuccess: () => {
+        toast({
+          title: 'Deleted',
+          description: `${selectedLinks.length} link(s) deleted successfully`,
+        });
+        setSelectedLinks([]);
+      },
+      onError: (error) => {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to delete links',
+          variant: 'destructive',
+        });
+      },
+    });
   };
 
   const toggleSelectLink = (id) => {
@@ -147,23 +168,9 @@ export default function MyLinksPage() {
     setSelectedLinks([]);
   };
 
-  const bulkDelete = async () => {
-    if (selectedLinks.length === 0) return;
-
-    const confirmed = confirm(
-      `Are you sure you want to delete ${selectedLinks.length} link(s)?`
-    );
-    if (!confirmed) return;
-
-    await deleteLink(selectedLinks);
-    setSelectedLinks([]);
-  };
-
   const exportLinks = () => {
     const exported = filteredLinks.map((link) => {
-      // Destructure unwanted fields and keep the rest
       const { _id, user, anonId, __v, ...rest } = link;
-      // Format createdAt and updatedAt if present
       return {
         ...rest,
         ...(rest.createdAt && {
@@ -182,11 +189,11 @@ export default function MyLinksPage() {
     linkElem.download = 'my-links.json';
     linkElem.click();
   };
+
   return (
     <>
       <Navbar />
       <div className="p-4 md:p-8 space-y-8 mt-16">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -204,8 +211,8 @@ export default function MyLinksPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleRefresh}
                 title="Refresh links from server"
+                onClick={() => refetch()}
                 disabled={refreshLoading}
               >
                 {refreshLoading ? (
@@ -215,7 +222,7 @@ export default function MyLinksPage() {
                 )}
                 Refresh
               </Button>
-              <Link href="/">
+              <Link href="/dashboard/">
                 <Button className="bg-gradient-to-r from-primary to-blue-600">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Link
@@ -225,7 +232,6 @@ export default function MyLinksPage() {
           </div>
         </motion.div>
 
-        {/* Filters and Search */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -255,7 +261,7 @@ export default function MyLinksPage() {
                     >
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
-                      <option value="paused">Paused</option>
+                      <option value="inactive">Paused</option>
                     </select>
                   </div>
 
@@ -282,7 +288,8 @@ export default function MyLinksPage() {
                         variant="outline"
                         size="sm"
                         onClick={bulkDelete}
-                        className="text-destructive"
+                        className="text-destructive bg-transparent"
+                        disabled={isDeleting}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete ({selectedLinks.length})
@@ -291,7 +298,6 @@ export default function MyLinksPage() {
                   </div>
                 </div>
 
-                {/* Bulk Actions */}
                 {filteredLinks.length > 0 && (
                   <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
                     <Button
@@ -319,14 +325,17 @@ export default function MyLinksPage() {
           </Spotlight>
         </motion.div>
 
-        {/* Links List */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="space-y-4"
         >
-          {filteredLinks.length === 0 ? (
+          {urlsLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <span className="text-muted-foreground">Loading links...</span>
+            </div>
+          ) : filteredLinks.length === 0 ? (
             <Spotlight
               className="w-full"
               spotlightColor="rgba(139, 92, 246, 0.1)"
@@ -346,8 +355,8 @@ export default function MyLinksPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleRefresh}
                       title="Refresh links from server"
+                      onClick={() => refetch()}
                       disabled={refreshLoading}
                     >
                       {refreshLoading ? (
@@ -357,7 +366,7 @@ export default function MyLinksPage() {
                       )}
                       Refresh
                     </Button>
-                    <Link href="/">
+                    <Link href="/dashboard/">
                       <Button className="bg-gradient-to-r from-primary to-blue-600">
                         <Plus className="h-4 w-4 mr-2" />
                         Create New Link
@@ -390,13 +399,14 @@ export default function MyLinksPage() {
                         value={link._id}
                       />
 
-                      {/* Link Info */}
                       <div className="flex-1 min-w-0 space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold text-lg truncate">
-                                {link.title}
+                                {link.title === ''
+                                  ? 'Untitled Link'
+                                  : link.title}
                               </h3>
                               <span
                                 className={`px-2 py-1 text-xs rounded-full ${
@@ -496,7 +506,6 @@ export default function MyLinksPage() {
                             </div>
                           </div>
 
-                          {/* Actions */}
                           <div className="flex items-center gap-2">
                             <Link href={`/dashboard/analytics/`}>
                               <Button size="sm" variant="outline">
@@ -537,13 +546,13 @@ export default function MyLinksPage() {
                               variant="outline"
                               onClick={() => deleteLink(link._id)}
                               className="text-destructive hover:text-destructive"
+                              disabled={isDeleting}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
 
-                        {/* Stats */}
                         <div className="flex items-center gap-6 text-sm text-muted-foreground pt-3 border-t border-border/50">
                           <div className="flex items-center gap-1">
                             <BarChart3 className="h-4 w-4" />

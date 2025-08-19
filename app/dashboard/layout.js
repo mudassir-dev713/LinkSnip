@@ -1,5 +1,4 @@
 import { Sidebar } from '../components/sidebar';
-import { UrlProvider } from '@/context/urlContext';
 export const metadata = {
   title: 'Dashboard | LinkSnip',
   description:

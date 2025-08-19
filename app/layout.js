@@ -3,9 +3,10 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import Provider from '@/components/Provider';
+import QueryProvider from '@/components/QueryProvider';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import { Provider as TextWrapProvider } from 'react-wrap-balancer';
-import { UrlProvider } from '@/context/urlContext';
+
 const inter = Inter({ subsets: ['latin'], display: 'swap', preload: true });
 
 export const metadata = {
@@ -140,16 +141,16 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={inter.className}>
-        <Provider>
-          <ThemeProvider attribute="class" defaultTheme="dark">
-            <SmoothScrollProvider>
-              <UrlProvider>
+        <QueryProvider>
+          <Provider>
+            <ThemeProvider attribute="class" defaultTheme="dark">
+              <SmoothScrollProvider>
                 <TextWrapProvider>{children}</TextWrapProvider>
-              </UrlProvider>
-            </SmoothScrollProvider>
-            <Toaster />
-          </ThemeProvider>
-        </Provider>
+              </SmoothScrollProvider>
+              <Toaster />
+            </ThemeProvider>
+          </Provider>
+        </QueryProvider>
       </body>
     </html>
   );

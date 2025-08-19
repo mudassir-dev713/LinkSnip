@@ -19,6 +19,8 @@ import { Input } from './ui/input';
 import { Card, CardContent } from './ui/card';
 import { Switch } from './ui/switch';
 import Balancer from 'react-wrap-balancer';
+import { useShortenUrl } from '@/hooks/useShortenUrl';
+import { useUrls } from '@/hooks/use-urls';
 
 export function HeroSection() {
   const [url, setUrl] = useState('');
@@ -31,29 +33,41 @@ export function HeroSection() {
   const [shortUrl, setShortUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleShorten = async () => {
-    if (!url) return;
-    setIsLoading(true);
+  const shortenMutation = useShortenUrl();
 
-    try {
-      const response = await fetch('/api/shorten', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url,
-        }),
+  const handleShorten = () => {
+    if (!url) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a URL to shorten.',
+        variant: 'destructive',
       });
-      const data = await response.json();
-      if (data) {
-        setShortUrl(data.shortUrl);
-      } else {
-        setShortUrl('');
-        console.error('Error creating short URL:', data);
-      }
-    } catch (error) {
-      setShortUrl('');
+      return;
     }
-    setIsLoading(false);
+
+    setIsLoading(true);
+    shortenMutation.mutate(
+      { url },
+      {
+        onSuccess: (data) => {
+          setShortUrl(data.shortUrl);
+          setUrl('');
+          toast({
+            title: 'Success',
+            description: 'Short URL created successfully!',
+          });
+          setIsLoading(false);
+        },
+        onError: (error) => {
+          setIsLoading(false);
+          toast({
+            title: 'Error',
+            description: error.message || 'Something went wrong.',
+            variant: 'destructive',
+          });
+        },
+      }
+    );
   };
 
   const copyToClipboard = () => {

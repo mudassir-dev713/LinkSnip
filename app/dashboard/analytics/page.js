@@ -37,7 +37,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { LineChart } from '@/components/ui/line-chart';
-import { useUrls } from '@/context/urlContext';
+import { useUrls } from '@/hooks/use-urls';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 // Icon mappings
 const deviceIcons = { Smartphone, Monitor, Tablet, HelpCircle };
@@ -46,12 +47,17 @@ const browserIcons = { Chrome, Firefox, Safari, Edge, Unknown: Globe };
 export default function AnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [showUrlDropdown, setShowUrlDropdown] = useState(false);
-  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [urlsLoading, setUrlsLoading] = useState(false);
   const [is24HourFormat, setIs24HourFormat] = useState(true);
-  const { urls, fetchUrlsFromAPI } = useUrls();
-  const [selectedUrl, setSelectedUrl] = useState(null);
+  const { data, isLoading: urlsLoading } = useUrls();
+
+  const urls = data?.urls || [];
+  const [selectedUrl, setSelectedUrl] = useState(
+    urls.length > 0 ? urls[0] : null
+  );
+  useEffect(() => {
+    setSelectedUrl(urls.length > 0 ? urls[0] : null);
+  }, [urls]);
 
   // Add click outside handler for dropdown
   useEffect(() => {
@@ -65,59 +71,17 @@ export default function AnalyticsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUrlDropdown]);
 
-  useEffect(() => {
-    setUrlsLoading(true);
-    if (urls && urls.length > 0) {
-      setSelectedUrl(urls[0]);
-    }
-    setUrlsLoading(false);
-  }, [urls]);
-
-  // Fetch analytics for selected URL and period
-  useEffect(() => {
-    if (!selectedUrl) {
-      setAnalytics(null);
-      return;
-    }
-    setLoading(true);
-    fetch(`/api/analytics/${selectedUrl._id}?period=${selectedPeriod}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          console.error('Analytics error:', data.error);
-          setAnalytics(null);
-        } else {
-          setAnalytics(data);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Fetch error:', error);
-        setAnalytics(null);
-        setLoading(false);
-      });
-  }, [selectedUrl, selectedPeriod]);
+  // fetch analytics via React Query
+  const {
+    data: analytics,
+    isLoading,
+    isFetching: refreshLoading,
+    refetch,
+    isError,
+  } = useAnalytics(selectedUrl?._id, selectedPeriod);
 
   const refreshAnalytics = () => {
-    if (selectedUrl) {
-      setLoading(true);
-      fetch(`/api/analytics/${selectedUrl._id}?period=${selectedPeriod}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.error) {
-            console.error('Analytics error:', data.error);
-            setAnalytics(null);
-          } else {
-            setAnalytics(data);
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Fetch error:', error);
-          setAnalytics(null);
-          setLoading(false);
-        });
-    }
+    refetch();
   };
 
   const formatTime = (hour) => {
@@ -136,7 +100,6 @@ export default function AnalyticsPage() {
     '30d': 'Last 30 Days',
     '90d': 'Last 90 Days',
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex flex-col">
