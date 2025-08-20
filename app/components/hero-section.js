@@ -1,37 +1,25 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {
-  ArrowRight,
-  Copy,
-  ExternalLink,
-  BarChart3,
-  Settings,
-  Eye,
-  EyeOff,
-  Lock,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Copy, ExternalLink, BarChart3, Settings, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { Spotlight } from './ui/spotlight';
 import { Spotlight as SpotlightNew } from './ui/spotlight-new';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardContent } from './ui/card';
-import { Switch } from './ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import Balancer from 'react-wrap-balancer';
 import { useShortenUrl } from '@/hooks/useShortenUrl';
-import { useUrls } from '@/hooks/use-urls';
 
 export function HeroSection() {
   const [url, setUrl] = useState('');
   const [customAlias, setCustomAlias] = useState('');
-  const [urlName, setUrlName] = useState('');
+  const [title, setTitle] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [enablePassword, setEnablePassword] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [shortUrl, setShortUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [Error, setError] = useState(false);
 
   const shortenMutation = useShortenUrl();
 
@@ -47,7 +35,7 @@ export function HeroSection() {
 
     setIsLoading(true);
     shortenMutation.mutate(
-      { url },
+      { url, title },
       {
         onSuccess: (data) => {
           setShortUrl(data.shortUrl);
@@ -112,69 +100,106 @@ export function HeroSection() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
             className="max-w-2xl mx-auto"
           >
             <Spotlight
-              className="md:p-8 px-4 py-6"
+              className="w-full"
               spotlightColor="rgba(59, 130, 246, 0.15)"
             >
               <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-                <CardContent className="p-0 space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Input
-                        placeholder="Enter your long URL here..."
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        className="flex-1 h-12 text-base"
-                      />
-                      <Button
-                        onClick={handleShorten}
-                        disabled={!url || isLoading}
-                        className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
-                      >
-                        {isLoading ? (
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            Shorten <ArrowRight className="ml-2 h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
-                    </div>
-
-                    {shortUrl && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="p-4 bg-muted/50 rounded-lg space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Shortened URL:
-                          </span>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={copyToClipboard}
-                            >
-                              <Copy className="h-3 w-3 mr-1" />
-                              Copy
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Visit
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="p-3 bg-background rounded border font-mono text-sm break-all">
-                          {shortUrl}
-                        </div>
-                      </motion.div>
-                    )}
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2"></CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      placeholder="Enter your long URL here..."
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="flex-1 h-12 text-base"
+                    />
+                    <Button
+                      onClick={handleShorten}
+                      disabled={!url || isLoading}
+                      className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600"
+                    >
+                      {isLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          Shorten <Plus className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
                   </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAdvanced((p) => !p)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    {showAdvanced ? 'Hide Advanced' : 'Advanced Options'}
+                  </Button>
+
+                  {showAdvanced && (
+                    <div className="space-y-3 p-4 bg-muted/40 border rounded-lg">
+                      <>
+                        <Input
+                          placeholder="Name for your dashboard"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                        />
+                        <Input
+                          placeholder="Custom alias (e.g. promo2025)"
+                          value={customAlias}
+                          onChange={(e) => setError(true)}
+                        />
+                      </>
+                      <>
+                        <Input
+                          type="password"
+                          placeholder="Optional password"
+                          value={password}
+                          onChange={(e) => setError(true)}
+                        />
+                        {Error && (
+                          <div className="flex items-center space-x-6  text-sm text-muted-foreground text-red-600">
+                            You Must be logged in to use CustomAlias And
+                            Password.
+                          </div>
+                        )}
+                      </>
+                    </div>
+                  )}
+
+                  {shortUrl && (
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Shortened URL:
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(shortUrl)}
+                          >
+                            <Copy className="h-3 w-3 mr-1" /> Copy
+                          </Button>
+                          <a href={shortUrl} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="outline">
+                              <ExternalLink className="h-3 w-3 mr-1" /> Visit
+                            </Button>
+                          </a>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-background rounded border font-mono text-sm break-all">
+                        {shortUrl}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Spotlight>

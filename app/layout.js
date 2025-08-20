@@ -143,7 +143,12 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         <QueryProvider>
           <Provider>
-            <ThemeProvider attribute="class" defaultTheme="dark">
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              storageKey="vite-ui-theme"
+            >
               <SmoothScrollProvider>
                 <TextWrapProvider>{children}</TextWrapProvider>
               </SmoothScrollProvider>

@@ -5,9 +5,10 @@ import { NextResponse } from 'next/server';
 export async function createShortUrlWithoutUser(
   url,
   anonId,
-  password = null,
-  title = 'Untitled Link'
+  title = 'Untitled Link',
+  password = null
 ) {
+  console.log(title);
   const urlShort = new ShortUrl({
     fullUrl: url,
     shortUrl: generateNanoId(8),

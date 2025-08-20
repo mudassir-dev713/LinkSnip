@@ -108,3 +108,45 @@ export const useDeleteUrl = () => {
     onError: deleteUrls.onError,
   });
 };
+
+export function useUpdateUrlStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, newStatus }) => {
+      const res = await fetch('/api/update-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update status');
+      return { id, newStatus };
+    },
+    //  optimistic update
+    onMutate: async ({ id, newStatus }) => {
+      await queryClient.cancelQueries(['urls']);
+
+      const prevData = queryClient.getQueryData(['urls']);
+
+      queryClient.setQueryData(['urls'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          urls: old.urls.map((url) =>
+            url._id === id ? { ...url, status: newStatus } : url
+          ),
+        };
+      });
+
+      return { prevData };
+    },
+    onError: (err, variables, context) => {
+      // rollback
+      queryClient.setQueryData(['urls'], context.prevData);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(['urls']);
+    },
+  });
+}

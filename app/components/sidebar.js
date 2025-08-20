@@ -137,7 +137,7 @@ export function Sidebar() {
           <div className="p-4 border-t border-border space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Theme</span>
-              <ThemeToggle />
+              <ThemeToggle variant="circle" start="top-left" />
             </div>
 
             <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
