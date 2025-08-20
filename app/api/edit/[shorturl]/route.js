@@ -38,10 +38,21 @@ export async function PATCH(request, { params }) {
     errors.title = 'Title cannot exceed 100 characters';
   }
 
-  if (customAlias && !/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
-    errors.shortUrl = 'Alias can only contain letters, numbers, -, and _';
+  if (customAlias) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
+      errors.shortUrl = 'Alias can only contain letters, numbers, -, and _';
+    } else {
+      // Check uniqueness (exclude current doc from check)
+      const exists = await ShortUrl.findOne({
+        shortUrl: customAlias,
+        _id: { $ne: shorturl },
+      });
+      if (exists) {
+        errors.shortUrl =
+          'Custom alias already exists. Please choose another one.';
+      }
+    }
   }
-
   if (password && password.length < 2) {
     errors.password = 'Password must be at least 2 characters';
   }
