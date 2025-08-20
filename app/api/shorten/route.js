@@ -25,7 +25,9 @@ export async function POST(req) {
     await dbConnect();
     const session = await getServerSession(authOptions);
     let shorturl;
+
     if (session?.user?.id) {
+      // Logged in user
       try {
         shorturl = await createShortUrlWithUser(
           formattedUrl,
@@ -43,12 +45,13 @@ export async function POST(req) {
             {
               error: 'Custom alias already exists. Please choose another one.',
             },
-            { status: 409 } // Conflict
+            { status: 409 }
           );
         }
-        throw err; // Re-throw if it's some other error
+        throw err;
       }
     } else {
+      // Anonymous user
       if (password || customAlias) {
         return NextResponse.json(
           { error: 'You must be logged in to use password or custom alias.' },
@@ -56,33 +59,45 @@ export async function POST(req) {
         );
       }
 
-      const cookieStore = await cookies(); // no `await`
+      const cookieStore = cookies(); // not async
       let anonId = cookieStore.get('anonId')?.value;
 
+      let setNewCookie = false;
       if (!anonId) {
-        const newAnonId = generateAnonId();
-        anonId = newAnonId;
-        // You must use `NextResponse` to set cookies
-        const response = NextResponse.json(
-          { message: 'Short URL created successfully' },
-          {
-            status: 201,
-          }
-        );
-        response.cookies.set('anonId', newAnonId);
-        return response;
+        anonId = generateAnonId();
+        setNewCookie = true;
       }
 
       shorturl = await createShortUrlWithoutUser(formattedUrl, anonId, title);
+
+      const response = NextResponse.json({
+        _id: shorturl._id,
+        message: 'Short URL created successfully',
+        shortUrl: process.env.NEXT_PUBLIC_BASE_URL + '/' + shorturl.shortUrl,
+        fullUrl: formattedUrl,
+        createdAt: shorturl.createdAt,
+        updatedAt: shorturl.updatedAt,
+        title: shorturl.title,
+        user: shorturl.user || null,
+        password: shorturl.password || null,
+        status: shorturl.status || 'active',
+      });
+
+      if (setNewCookie) {
+        response.cookies.set('anonId', anonId, { path: '/', httpOnly: true });
+      }
+
+      return response;
     }
 
+    // Logged in response
     return NextResponse.json({
       _id: shorturl._id,
       message: 'Short URL created successfully',
       shortUrl: process.env.NEXT_PUBLIC_BASE_URL + '/' + shorturl.shortUrl,
       fullUrl: formattedUrl,
       createdAt: shorturl.createdAt,
-      createdAt: shorturl.updatedAt,
+      updatedAt: shorturl.updatedAt,
       title: shorturl.title,
       user: shorturl.user || null,
       password: shorturl.password || null,
