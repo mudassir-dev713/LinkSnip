@@ -18,6 +18,8 @@ import {
   Download,
   RefreshCw,
   EllipsisVertical,
+  Save,
+  X,
 } from 'lucide-react';
 import { Spotlight } from '../../components/ui/spotlight';
 import { Button } from '../../components/ui/button';
@@ -25,7 +27,12 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { useDeleteUrls, useUpdateUrlStatus, useUrls } from '@/hooks/use-urls';
+import {
+  useDeleteUrls,
+  useUpdateLink,
+  useUpdateUrlStatus,
+  useUrls,
+} from '@/hooks/use-urls';
 
 const BASE_URL =
   typeof window !== 'undefined'
@@ -51,7 +58,79 @@ export default function MyLinksPage() {
 
   const { mutate: deleteUrls, isPending: isDeleting } = useDeleteUrls();
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateUrlStatus();
+  const [editingLinkId, setEditingLinkId] = useState('hkjhjkhjkhkjhjkhkjh');
+  const [formState, setFormState] = useState({
+    title: '',
+    fullUrl: '',
+    password: '',
+    shortUrl: '',
+    tags: '', // if you’ll use it later
+  });
+  const [validationErrors, setValidationErrors] = useState({});
+  const { mutateAsync: updateLink, isPending: isSaving } = useUpdateLink();
+  const validateLinkData = (raw) => {
+    const data = {
+      title: raw.title?.trim() || '',
+      fullUrl: raw.fullUrl?.trim() || '',
+      shortUrl: raw.shortUrl?.trim() || '',
+      password: raw.password ?? '',
+      tags: raw.tags ?? '',
+    };
+    const errors = {};
 
+    if (data.title.length > 100)
+      errors.title = 'Title cannot exceed 100 characters';
+
+    if (!/^https?:\/\//i.test(data.fullUrl)) {
+      errors.fullUrl = 'URL must start with http:// or https://';
+    } else {
+      try {
+        new URL(data.fullUrl);
+      } catch {
+        errors.fullUrl = 'Invalid URL';
+      }
+    }
+
+    if (data.shortUrl && !/^[a-zA-Z0-9_-]+$/.test(data.shortUrl)) {
+      errors.shortUrl = 'Alias can only contain letters, numbers, -, _';
+    }
+
+    if (data.password && data.password.length < 2) {
+      errors.password = 'Password must be at least 2 characters';
+    }
+
+    if (data.tags) {
+      const tooLong = data.tags
+        .split(',')
+        .map((t) => t.trim())
+        .some((t) => t.length > 20);
+      if (tooLong) errors.tags = 'Each tag must be under 20 characters';
+    }
+
+    return { errors, data };
+  };
+  const handleSave = async () => {
+    const { errors, data: cleaned } = validateLinkData(formState);
+    if (Object.keys(errors).length) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    try {
+      await updateLink({
+        id: editingLinkId,
+        data: {
+          title: formState.title.trim(),
+          fullUrl: formState.fullUrl.trim(),
+          password: formState.password || undefined,
+          shortUrl: formState.shortUrl.trim() || undefined,
+        },
+      });
+      setEditingLinkId(null);
+    } catch (error) {
+      console.error('Error updating link:', error);
+    }
+  };
   const links = data?.urls || [];
   const filteredLinks = links
     .filter((link) => {
@@ -385,7 +464,29 @@ export default function MyLinksPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-semibold text-lg truncate">
-                              {link.title === '' ? 'Untitled Link' : link.title}
+                              {editingLinkId === link._id ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={formState.title}
+                                    onChange={(e) =>
+                                      setFormState({
+                                        ...formState,
+                                        title: e.target.value,
+                                      })
+                                    }
+                                    className="w-full text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Title"
+                                  />
+                                  {validationErrors.title && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {validationErrors.title}
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                link.title || 'Untitled Link'
+                              )}
                             </h3>
                             <span
                               className={`px-2 py-1 text-xs rounded-full ${
@@ -400,12 +501,34 @@ export default function MyLinksPage() {
 
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-primary">
-                                {link.shortUrl &&
-                                  (link.shortUrl.startsWith('http')
+                              {editingLinkId === link._id ? (
+                                <>
+                                  <span className="text-sm">{BASE_URL}/</span>
+                                  <input
+                                    type="text"
+                                    value={formState.shortUrl}
+                                    onChange={(e) =>
+                                      setFormState({
+                                        ...formState,
+                                        shortUrl: e.target.value,
+                                      })
+                                    }
+                                    className="w-32 text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="custom-alias"
+                                  />
+                                  {validationErrors.shortUrl && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {validationErrors.shortUrl}
+                                    </p>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-sm font-medium text-primary">
+                                  {link.shortUrl.startsWith('http')
                                     ? link.shortUrl
-                                    : `${BASE_URL}/${link.shortUrl}`)}
-                              </span>
+                                    : `${BASE_URL}/${link.shortUrl}`}
+                                </span>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -444,30 +567,77 @@ export default function MyLinksPage() {
                             </div>
 
                             <p className="text-sm text-muted-foreground truncate">
-                              {link.fullUrl}
-                            </p>
-                            {link.password && (
-                              <p className="text-sm text-muted-foreground truncate flex gap-8 items-center">
-                                <div>
-                                  Password: &nbsp;
-                                  {showPassword
-                                    ? link?.password
-                                    : link?.password
-                                        ?.split('')
-                                        ?.map((char, index) => (
-                                          <span key={index}>*</span>
-                                        ))}
-                                </div>
-                                <span
-                                  onClick={() => setShowPassword(!showPassword)}
-                                >
-                                  {showPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
+                              {editingLinkId === link._id ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={formState.fullUrl}
+                                    onChange={(e) =>
+                                      setFormState({
+                                        ...formState,
+                                        fullUrl: e.target.value,
+                                      })
+                                    }
+                                    className="w-full text-sm border text-white rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Full URL"
+                                  />
+
+                                  {validationErrors.fullUrl && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                      {validationErrors.fullUrl}
+                                    </p>
                                   )}
-                                </span>
-                              </p>
+                                </>
+                              ) : (
+                                link.fullUrl
+                              )}
+                            </p>
+                            {editingLinkId === link._id ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={formState.password}
+                                  onChange={(e) =>
+                                    setFormState({
+                                      ...formState,
+                                      password: e.target.value,
+                                    })
+                                  }
+                                  className="w-full text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                  placeholder="Password (optional)"
+                                />
+                                {validationErrors.password && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    {validationErrors.password}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              link.password && (
+                                <p className="text-sm text-muted-foreground truncate flex gap-8 items-center">
+                                  <div>
+                                    Password: &nbsp;
+                                    {showPassword
+                                      ? link?.password
+                                      : link?.password
+                                          ?.split('')
+                                          ?.map((char, index) => (
+                                            <span key={index}>*</span>
+                                          ))}
+                                  </div>
+                                  <span
+                                    onClick={() =>
+                                      setShowPassword(!showPassword)
+                                    }
+                                  >
+                                    {showPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </span>
+                                </p>
+                              )
                             )}
 
                             <div className="flex flex-wrap gap-1">
@@ -494,13 +664,61 @@ export default function MyLinksPage() {
                                 <BarChart3 className="h-3 w-3 mr-2" /> Analytics
                               </Button>
                             </Link>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="justify-start"
-                            >
-                              <Edit className="h-3 w-3 mr-2" /> Edit
-                            </Button>
+                            {editingLinkId === link._id ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="justify-start"
+                                  onClick={handleSave}
+                                  disabled={isSaving}
+                                >
+                                  <Save className="h-3 w-3 mr-2" /> Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setEditingLinkId(null)}
+                                >
+                                  <X className="h-3 w-3 mr-2" /> Cancel
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="justify-start"
+                                onClick={() => {
+                                  setEditingLinkId(link._id);
+                                  let alias = '';
+                                  if (link.shortUrl) {
+                                    try {
+                                      // If absolute URL -> take pathname without leading slash
+                                      const u = new URL(
+                                        link.shortUrl,
+                                        BASE_URL
+                                      );
+                                      alias =
+                                        u.origin === BASE_URL
+                                          ? u.pathname.replace(/^\//, '')
+                                          : u.pathname.replace(/^\//, '');
+                                    } catch {
+                                      alias = link.shortUrl
+                                        .replace(`${BASE_URL}/`, '')
+                                        .replace(/^\//, '');
+                                    }
+                                  }
+                                  setFormState({
+                                    title: link.title || '',
+                                    fullUrl: link.fullUrl || '',
+                                    password: link.password || '',
+                                    shortUrl: alias || '',
+                                  });
+                                }}
+                              >
+                                <Edit className="h-3 w-3 mr-2" /> Edit
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"

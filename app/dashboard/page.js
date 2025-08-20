@@ -320,7 +320,11 @@ export default function DashboardPage() {
                             </span>
                           </div>
                         </div>
-                        <Button size="sm" variant="outline">
+                        <Button
+                          className="md:flex hidden"
+                          size="sm"
+                          variant="outline"
+                        >
                           <BarChart3 className="h-3 w-3 mr-1" /> Analytics
                         </Button>
                       </div>
