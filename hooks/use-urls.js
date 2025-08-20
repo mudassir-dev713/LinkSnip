@@ -150,3 +150,23 @@ export function useUpdateUrlStatus() {
     },
   });
 }
+export function useUpdateLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }) => {
+      const res = await fetch(`/api/edit/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || 'Failed to update link');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['urls'] }); // ✅ match useUrls
+    },
+  });
+}
