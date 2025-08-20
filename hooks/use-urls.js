@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
 // ✅ Fetch URLs from API
 const fetchUrls = async () => {
@@ -152,21 +153,33 @@ export function useUpdateUrlStatus() {
 }
 export function useUpdateLink() {
   const queryClient = useQueryClient();
-  return useMutation({
+  const [formErrors, setFormErrors] = useState({});
+
+  const mutation = useMutation({
     mutationFn: async ({ id, data }) => {
       const res = await fetch(`/api/edit/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+
+      const json = await res.json();
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message || 'Failed to update link');
+        // handle validation errors
+        if (json.errors) {
+          setFormErrors(json.errors);
+        }
+        throw new Error(json.error || 'Failed to update link');
       }
-      return res.json();
+
+      setFormErrors({});
+      return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['urls'] }); // ✅ match useUrls
+      queryClient.invalidateQueries(['links']);
     },
   });
+
+  return { ...mutation, formErrors };
 }

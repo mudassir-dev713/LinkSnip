@@ -1,18 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import {
-  QrCode,
-  Download,
-  Copy,
-  Share2,
-  Palette,
-  Settings,
-  RefreshCw,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { QrCode, Download, Copy, Share2, Palette, Eye } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -24,6 +14,7 @@ import {
 } from '../components/ui/card';
 import { Switch } from '../components/ui/switch';
 import { Sidebar } from '../components/sidebar';
+import { useGenerateQR } from '@/hooks/use-qr';
 
 export default function QRGeneratorPage() {
   const [url, setUrl] = useState('');
@@ -35,41 +26,32 @@ export default function QRGeneratorPage() {
   const [margin, setMargin] = useState(4);
   const [generatedQR, setGeneratedQR] = useState('');
 
-  const generateQR = () => {
-    if (!url) return;
+  const { mutate: generateQR, data, isPending, error } = useGenerateQR();
 
-    // Simulate QR generation - in real app, you'd use a QR library
-    const qrData = `data:image/svg+xml;base64,${btoa(`
-      <svg width="${qrSize}" height="${qrSize}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="${bgColor}"/>
-        <rect x="20" y="20" width="40" height="40" fill="${qrColor}"/>
-        <rect x="80" y="20" width="40" height="40" fill="${qrColor}"/>
-        <rect x="140" y="20" width="40" height="40" fill="${qrColor}"/>
-        <rect x="200" y="20" width="40" height="40" fill="${qrColor}"/>
-        <rect x="20" y="80" width="40" height="40" fill="${qrColor}"/>
-        <rect x="80" y="80" width="40" height="40" fill="${qrColor}"/>
-        <rect x="140" y="80" width="40" height="40" fill="${qrColor}"/>
-        <rect x="200" y="80" width="40" height="40" fill="${qrColor}"/>
-        <rect x="20" y="140" width="40" height="40" fill="${qrColor}"/>
-        <rect x="80" y="140" width="40" height="40" fill="${qrColor}"/>
-        <rect x="140" y="140" width="40" height="40" fill="${qrColor}"/>
-        <rect x="200" y="140" width="40" height="40" fill="${qrColor}"/>
-        <rect x="20" y="200" width="40" height="40" fill="${qrColor}"/>
-        <rect x="80" y="200" width="40" height="40" fill="${qrColor}"/>
-        <rect x="140" y="200" width="40" height="40" fill="${qrColor}"/>
-        <rect x="200" y="200" width="40" height="40" fill="${qrColor}"/>
-        <text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="monospace" font-size="12" fill="${qrColor}">QR</text>
-      </svg>
-    `)}`;
+  console.log(data);
+  // Keep generated QR synced with backend result
+  useEffect(() => {
+    if (data?.qr?.qrDataUrl) {
+      setGeneratedQR(data.qr.qrDataUrl);
+    }
+  }, [data]);
 
-    setGeneratedQR(qrData);
+  const handleGenerate = () => {
+    generateQR({
+      url,
+      size: qrSize,
+      margin,
+      color: qrColor,
+      bgColor,
+      errorCorrection,
+    });
   };
 
   const downloadQR = () => {
     if (!generatedQR) return;
 
     const link = document.createElement('a');
-    link.download = 'qr-code.svg';
+    link.download = 'qr-code.png'; // PNG (most common)
     link.href = generatedQR;
     link.click();
   };
@@ -81,7 +63,7 @@ export default function QRGeneratorPage() {
       const response = await fetch(generatedQR);
       const blob = await response.blob();
       await navigator.clipboard.write([
-        new ClipboardItem({ 'image/svg+xml': blob }),
+        new ClipboardItem({ [blob.type]: blob }),
       ]);
     } catch (err) {
       console.error('Failed to copy QR code:', err);
@@ -249,13 +231,20 @@ export default function QRGeneratorPage() {
                     )}
 
                     <Button
-                      onClick={generateQR}
-                      disabled={!url}
+                      onClick={handleGenerate}
+                      disabled={!url || isPending}
                       className="w-full h-11 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                     >
                       <QrCode className="h-4 w-4 mr-2" />
-                      Generate QR Code
+                      {isPending ? 'Generating...' : 'Generate QR Code'}
                     </Button>
+
+                    {/* Show backend errors */}
+                    {error && (
+                      <p className="text-red-500 text-sm">
+                        {error?.response?.data?.error || error.message}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </Spotlight>
@@ -279,14 +268,14 @@ export default function QRGeneratorPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {generatedQR ? (
+                    {data ? (
                       <div className="space-y-4">
                         <div className="flex justify-center p-8 bg-muted/30 rounded-lg">
                           <img
-                            src={generatedQR}
-                            alt="Generated QR Code"
+                            src={data.qrCode}
+                            alt="QR Code"
+                            style={{ width: data.size, height: data.size }}
                             className="max-w-full h-auto rounded-lg shadow-lg"
-                            style={{ width: qrSize, height: qrSize }}
                           />
                         </div>
 
@@ -313,17 +302,18 @@ export default function QRGeneratorPage() {
                           <h4 className="font-medium">QR Code Details</h4>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <p>
-                              <strong>URL:</strong> {url}
+                              <strong>URL:</strong> {data.url}
                             </p>
                             <p>
-                              <strong>Size:</strong> {qrSize}x{qrSize}px
+                              <strong>Size:</strong> {data.size}x{data.size}px
                             </p>
                             <p>
                               <strong>Error Correction:</strong>{' '}
-                              {errorCorrection}
+                              {data.errorCorrection}
                             </p>
                             <p>
-                              <strong>Colors:</strong> {qrColor} / {bgColor}
+                              <strong>Colors:</strong> {data.color} /{' '}
+                              {data.bgColor}
                             </p>
                           </div>
                         </div>

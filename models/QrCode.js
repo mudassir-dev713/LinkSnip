@@ -18,6 +18,11 @@ const QrCodeSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    size: Number,
+    margin: Number,
+    color: String,
+    bgColor: String,
+    errorCorrection: String,
   },
   { timestamps: true }
 );

@@ -55,10 +55,9 @@ export default function MyLinksPage() {
     refetch,
     isFetching: refreshLoading,
   } = useUrls();
-
   const { mutate: deleteUrls, isPending: isDeleting } = useDeleteUrls();
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateUrlStatus();
-  const [editingLinkId, setEditingLinkId] = useState('hkjhjkhjkhkjhjkhkjh');
+  const [editingLinkId, setEditingLinkId] = useState(null);
   const [formState, setFormState] = useState({
     title: '',
     fullUrl: '',
@@ -67,7 +66,13 @@ export default function MyLinksPage() {
     tags: '', // if you’ll use it later
   });
   const [validationErrors, setValidationErrors] = useState({});
-  const { mutateAsync: updateLink, isPending: isSaving } = useUpdateLink();
+  const {
+    mutateAsync: updateLink,
+    isPending: isSaving,
+    formErrors,
+  } = useUpdateLink();
+  console.log(formErrors);
+
   const validateLinkData = (raw) => {
     const data = {
       title: raw.title?.trim() || '',
@@ -502,26 +507,36 @@ export default function MyLinksPage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               {editingLinkId === link._id ? (
-                                <>
-                                  <span className="text-sm">{BASE_URL}/</span>
-                                  <input
-                                    type="text"
-                                    value={formState.shortUrl}
-                                    onChange={(e) =>
-                                      setFormState({
-                                        ...formState,
-                                        shortUrl: e.target.value,
-                                      })
-                                    }
-                                    className="w-32 text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
-                                    placeholder="custom-alias"
-                                  />
-                                  {validationErrors.shortUrl && (
-                                    <p className="text-xs text-red-500 mt-1">
-                                      {validationErrors.shortUrl}
-                                    </p>
-                                  )}
-                                </>
+                                <div className="flex flex-col">
+                                  <div>
+                                    <span className="text-sm">{BASE_URL}/</span>
+                                    <input
+                                      type="text"
+                                      value={formState.shortUrl}
+                                      onChange={(e) =>
+                                        setFormState({
+                                          ...formState,
+                                          shortUrl: e.target.value,
+                                        })
+                                      }
+                                      className="w-32 text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                                      placeholder="custom-alias"
+                                    />
+                                  </div>
+                                  <div>
+                                    {validationErrors.shortUrl && (
+                                      <p className="text-xs text-red-500 mt-1">
+                                        {validationErrors.shortUrl}
+                                      </p>
+                                    )}
+
+                                    {formErrors.shortUrl && (
+                                      <p className="text-xs text-red-500">
+                                        {formErrors.shortUrl}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               ) : (
                                 <span className="text-sm font-medium text-primary">
                                   {link.shortUrl.startsWith('http')
@@ -581,7 +596,11 @@ export default function MyLinksPage() {
                                     className="w-full text-sm border text-white rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                                     placeholder="Full URL"
                                   />
-
+                                  {formErrors.fullUrl && (
+                                    <p className="text-xs text-red-500">
+                                      {formErrors.fullUrl}
+                                    </p>
+                                  )}
                                   {validationErrors.fullUrl && (
                                     <p className="text-xs text-red-500 mt-1">
                                       {validationErrors.fullUrl}
