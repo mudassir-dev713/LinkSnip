@@ -59,7 +59,7 @@ export async function POST(req) {
         );
       }
 
-      const cookieStore = cookies(); // not async
+      const cookieStore = await cookies();
       let anonId = cookieStore.get('anonId')?.value;
 
       let setNewCookie = false;
@@ -67,7 +67,6 @@ export async function POST(req) {
         anonId = generateAnonId();
         setNewCookie = true;
       }
-
       shorturl = await createShortUrlWithoutUser(formattedUrl, anonId, title);
 
       const response = NextResponse.json({

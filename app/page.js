@@ -9,11 +9,11 @@ const FeaturesSection = lazy(() =>
     default: mod.FeaturesSection,
   }))
 );
-const StatsSection = lazy(() =>
-  import('./components/stats-section').then((mod) => ({
-    default: mod.StatsSection,
-  }))
-);
+// const StatsSection = lazy(() =>
+//   import('./components/stats-section').then((mod) => ({
+//     default: mod.StatsSection,
+//   }))
+// );
 const Footer = lazy(() =>
   import('./components/footer').then((mod) => ({ default: mod.Footer }))
 );
@@ -30,10 +30,6 @@ export default function Home() {
 
       <Suspense fallback={<Loader />}>
         <FeaturesSection />
-      </Suspense>
-
-      <Suspense fallback={<Loader />}>
-        <StatsSection />
       </Suspense>
 
       <Suspense fallback={<Loader />}>

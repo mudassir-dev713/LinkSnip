@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Search,
   Plus,
@@ -17,6 +17,7 @@ import {
   EyeOff,
   Download,
   RefreshCw,
+  EllipsisVertical,
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
@@ -24,7 +25,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent } from '../components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { useDeleteUrls, useUrls } from '@/hooks/use-urls';
+import { useDeleteUrls, useUpdateUrlStatus, useUrls } from '@/hooks/use-urls';
 import { Navbar } from '../components/navbar';
 
 const BASE_URL =
@@ -50,7 +51,7 @@ export default function MyLinksPage() {
   } = useUrls();
 
   const { mutate: deleteUrls, isPending: isDeleting } = useDeleteUrls();
-
+  const { mutate: updateStatus, isPending: isUpdating } = useUpdateUrlStatus();
   const links = data?.urls || [];
   const filteredLinks = links
     .filter((link) => {
@@ -79,33 +80,6 @@ export default function MyLinksPage() {
       title: 'Copied!',
       description: 'URL copied to clipboard',
     });
-  };
-
-  const updateUrlStatus = async (id, newStatus) => {
-    try {
-      const res = await fetch('/api/update-status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: newStatus }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      refetch();
-
-      toast({
-        title: 'Updated',
-        description: `Link ${newStatus === 'active' ? 'activated' : 'paused'} successfully`,
-      });
-    } catch (error) {
-      console.error('Failed to update status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update link status',
-        variant: 'destructive',
-      });
-    }
   };
 
   const deleteLink = (id) => {
@@ -190,6 +164,18 @@ export default function MyLinksPage() {
     linkElem.click();
   };
 
+  const [openMenu, setOpenMenu] = useState(null); // track which menu is open
+
+  // Optional: close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.menu-container')) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
   return (
     <>
       <Navbar />
@@ -200,7 +186,7 @@ export default function MyLinksPage() {
           transition={{ duration: 0.6 }}
           className="space-y-4"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex md:items-center justify-between md:flex-row flex-col gap-4">
             <div>
               <h1 className="text-3xl font-bold">My Links</h1>
               <p className="text-muted-foreground">
@@ -242,8 +228,8 @@ export default function MyLinksPage() {
             spotlightColor="rgba(59, 130, 246, 0.15)"
           >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <CardContent className="md:p-6 p-4">
+                <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
                   <div className="flex flex-col sm:flex-row gap-3 flex-1">
                     <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -507,49 +493,131 @@ export default function MyLinksPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Link href={`/dashboard/analytics/`}>
-                              <Button size="sm" variant="outline">
-                                <BarChart3 className="h-3 w-3 mr-1" />
-                                Analytics
+                            <div className="md:block hidden">
+                              <Link href={`/dashboard/analytics/${link._id}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="justify-start"
+                                >
+                                  <BarChart3 className="h-3 w-3 mr-2" />{' '}
+                                  Analytics
+                                </Button>
+                              </Link>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="justify-start"
+                              >
+                                <Edit className="h-3 w-3 mr-2" /> Edit
                               </Button>
-                            </Link>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                updateUrlStatus(
-                                  link._id,
-                                  link.status === 'active'
-                                    ? 'inactive'
-                                    : 'active'
-                                )
-                              }
-                            >
-                              {link.status === 'active' ? (
-                                <>
-                                  <EyeOff className="h-3 w-3 mr-1" />
-                                  Pause
-                                </>
-                              ) : (
-                                <>
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  Activate
-                                </>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  updateStatus({
+                                    id: link._id,
+                                    newStatus:
+                                      link.status === 'active'
+                                        ? 'inactive'
+                                        : 'active',
+                                  })
+                                }
+                                disabled={isUpdating}
+                                className="justify-start"
+                              >
+                                {link.status === 'active' ? (
+                                  <>
+                                    <EyeOff className="h-3 w-3 mr-2" /> Pause
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="h-3 w-3 mr-2" /> Activate
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => deleteLink(link._id)}
+                                className="text-destructive justify-start"
+                                disabled={isDeleting}
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" /> Delete
+                              </Button>
+                            </div>
+                            <div className="relative menu-container md:hidden block">
+                              <button
+                                onClick={() =>
+                                  setOpenMenu(
+                                    openMenu === link._id ? null : link._id
+                                  )
+                                }
+                                className="p-1"
+                              >
+                                <EllipsisVertical className="h-5 w-5" />
+                              </button>
+
+                              {openMenu === link._id && (
+                                <div className="absolute  right-0 top-full  bg-card border border-border rounded-md shadow-lg flex flex-col w-40 z-50">
+                                  <Link
+                                    href={`/dashboard/analytics/${link._id}`}
+                                  >
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="justify-start"
+                                    >
+                                      <BarChart3 className="h-3 w-3 mr-2" />{' '}
+                                      Analytics
+                                    </Button>
+                                  </Link>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="justify-start"
+                                  >
+                                    <Edit className="h-3 w-3 mr-2" /> Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() =>
+                                      updateStatus({
+                                        id: link._id,
+                                        newStatus:
+                                          link.status === 'active'
+                                            ? 'inactive'
+                                            : 'active',
+                                      })
+                                    }
+                                    disabled={isUpdating}
+                                    className="justify-start"
+                                  >
+                                    {link.status === 'active' ? (
+                                      <>
+                                        <EyeOff className="h-3 w-3 mr-2" />{' '}
+                                        Pause
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Eye className="h-3 w-3 mr-2" />{' '}
+                                        Activate
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteLink(link._id)}
+                                    className="text-destructive justify-start"
+                                    disabled={isDeleting}
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-2" /> Delete
+                                  </Button>
+                                </div>
                               )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => deleteLink(link._id)}
-                              className="text-destructive hover:text-destructive"
-                              disabled={isDeleting}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            </div>
                           </div>
                         </div>
 
