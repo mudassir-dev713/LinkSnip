@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
@@ -38,6 +39,8 @@ export default function DashboardPage() {
   const [customAlias, setCustomAlias] = useState('');
   const [title, setTitle] = useState('');
   const [password, setPassword] = useState('');
+  const [copied, setCopied] = useState(null);
+
   const { toast } = useToast();
 
   // React Query hooks
@@ -96,23 +99,16 @@ export default function DashboardPage() {
     );
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, id) => {
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        toast({
-          title: 'Copied!',
-          description: 'Short URL copied to clipboard.',
-          variant: 'default',
-        });
+        setCopied(id);
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
       })
-      .catch(() => {
-        toast({
-          title: 'Error',
-          description: 'Failed to copy to clipboard.',
-          variant: 'destructive',
-        });
-      });
+      .catch();
   };
 
   return (
@@ -219,9 +215,14 @@ export default function DashboardPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(shortUrl)}
+                          onClick={() => copyToClipboard(shortUrl, shortUrl)}
                         >
-                          <Copy className="h-3 w-3 mr-1" /> Copy
+                          {copied == shortUrl ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            <Copy className="h-3 w-3 mr-1" />
+                          )}
+                          Copy
                         </Button>
                         <a href={shortUrl} target="_blank" rel="noreferrer">
                           <Button size="sm" variant="outline">
@@ -299,12 +300,17 @@ export default function DashboardPage() {
                                 copyToClipboard(
                                   link.shortUrl.startsWith('http')
                                     ? link.shortUrl
-                                    : `${BASE_URL}/${link.shortUrl}`
+                                    : `${BASE_URL}/${link.shortUrl}`,
+                                  link._id
                                 )
                               }
                               className="h-6 w-6 p-0"
                             >
-                              <Copy className="h-3 w-3" />
+                              {copied == link._id ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                           <p className="text-xs text-muted-foreground truncate">

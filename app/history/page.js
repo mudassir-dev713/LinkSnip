@@ -18,6 +18,7 @@ import {
   Download,
   RefreshCw,
   EllipsisVertical,
+  Check,
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
@@ -40,6 +41,8 @@ export default function MyLinksPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(null);
+
   const { toast } = useToast();
 
   const {
@@ -74,12 +77,16 @@ export default function MyLinksPage() {
       return (aValue - bValue) * modifier;
     });
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copied!',
-      description: 'URL copied to clipboard',
-    });
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(id);
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
+      })
+      .catch();
   };
 
   const deleteLink = (id) => {
@@ -208,7 +215,7 @@ export default function MyLinksPage() {
                 )}
                 Refresh
               </Button>
-              <Link href="/dashboard/">
+              <Link href="/">
                 <Button className="bg-gradient-to-r from-primary to-blue-600">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Link
@@ -421,12 +428,17 @@ export default function MyLinksPage() {
                                       link.shortUrl &&
                                         (link.shortUrl.startsWith('http')
                                           ? link.shortUrl
-                                          : `${BASE_URL}/${link.shortUrl}`)
+                                          : `${BASE_URL}/${link.shortUrl}`),
+                                      link._id
                                     )
                                   }
                                   className="h-6 w-6 p-0"
                                 >
-                                  <Copy className="h-3 w-3" />
+                                  {copied == link._id ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Copy className="h-3 w-3 mr-1" />
+                                  )}
                                 </Button>
                                 {link.shortUrl && (
                                   <a

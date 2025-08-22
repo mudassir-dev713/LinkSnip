@@ -150,7 +150,7 @@ export default function LoginPage() {
                     <span className="text-muted-foreground">Remember me</span>
                   </label>
                   <Link
-                    href="/forgot-password"
+                    href="/reset-password"
                     className="text-primary hover:underline"
                   >
                     Forgot password?
