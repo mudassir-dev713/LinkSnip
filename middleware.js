@@ -2,10 +2,13 @@ import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 
 const protectedRoutes = [
+  '/dashboard/',
   '/dashboard',
   '/profile',
   '/settings',
-  '/api/protected',
+  '/api/analytics',
+  '/api/allqrcode',
+  '/my-qrcodes',
 ];
 
 const publicRoutes = ['/login', '/signup', '/'];
@@ -38,6 +41,9 @@ export const config = {
     '/api/protected/:path*',
     '/login',
     '/signup',
+    '/api/analytics',
+    '/api/allqrcode',
+    '/my-qrcodes',
     '/', // homepage
   ],
 };

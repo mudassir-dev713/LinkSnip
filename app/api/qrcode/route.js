@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import QRCode from 'qrcode'; //
 import { dbConnect } from '@/lib/dbConnect';
 import QrCode from '@/models/QrCode';
+import { authOptions } from '../auth/[...nextauth]/authOptions';
+import { generateAnonId } from '@/utils/helper';
+import { getServerSession } from 'next-auth';
+import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
@@ -33,17 +37,41 @@ export async function POST(request) {
       errorCorrectionLevel: errorCorrection,
     });
 
-    // ✅ optional: save to Mongo
     await dbConnect();
-    const qrDoc = await QrCode.create({
-      url,
-      size,
-      margin,
-      color,
-      bgColor,
-      errorCorrection,
-      qrCode: qrDataUrl,
-    });
+    const session = await getServerSession(authOptions);
+    let qrDoc;
+    if (session?.user?.id) {
+      qrDoc = await QrCode.create({
+        user: session?.user?.id,
+        url,
+        size,
+        margin,
+        color,
+        bgColor,
+        errorCorrection,
+        qrCode: qrDataUrl,
+      });
+    } else {
+      const cookieStore = await cookies();
+      let anonId = cookieStore.get('anonId')?.value;
+
+      let setNewCookie = false;
+      if (!anonId) {
+        anonId = generateAnonId();
+        setNewCookie = true;
+      }
+
+      qrDoc = await QrCode.create({
+        url,
+        size,
+        margin,
+        color,
+        bgColor,
+        errorCorrection,
+        qrCode: qrDataUrl,
+        anonId: anonId,
+      });
+    }
 
     return NextResponse.json({ qr: qrDoc });
   } catch (err) {
