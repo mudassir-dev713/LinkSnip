@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { QrCode, Download, Copy, Share2, Palette, Eye } from 'lucide-react';
+import { QrCode, Download, Copy, Palette, Eye } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,6 +15,8 @@ import {
 import { Switch } from '../components/ui/switch';
 import { Sidebar } from '../components/sidebar';
 import { useGenerateQR } from '@/hooks/use-qr';
+import { useSession } from 'next-auth/react';
+import { Navbar } from '../components/navbar';
 
 export default function QRGeneratorPage() {
   const [url, setUrl] = useState('');
@@ -70,13 +72,15 @@ export default function QRGeneratorPage() {
     }
   };
 
+  const { data: session } = useSession();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex">
-        <div className="hidden md:block w-72">
-          <Sidebar />
+        <div className={` ${session ? 'md:w-72 ' : 'md:w-0'} w-0 `}>
+          {session ? <Sidebar /> : <Navbar />}
         </div>
-        <main className="flex-1 p-4 md:p-8 space-y-8">
+        <main className="flex-1 p-4 md:p-8 space-y-8 mt-16">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -92,12 +96,7 @@ export default function QRGeneratorPage() {
                   options
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-              </div>
+              <div className="flex items-center space-x-2"></div>
             </div>
           </motion.div>
 

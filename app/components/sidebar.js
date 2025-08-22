@@ -43,6 +43,11 @@ const sidebarItems = [
     icon: QrCode,
   },
   {
+    name: 'My QR Codes',
+    href: '/my-qrcodes',
+    icon: QrCode,
+  },
+  {
     name: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
