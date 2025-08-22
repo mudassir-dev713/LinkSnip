@@ -48,7 +48,7 @@ export default function AnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [showUrlDropdown, setShowUrlDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [is24HourFormat, setIs24HourFormat] = useState(true);
+  const [is24HourFormat, setIs24HourFormat] = useState(null);
   const { data, isLoading: urlsLoading } = useUrls();
 
   const urls = data?.urls || [];
@@ -84,6 +84,14 @@ export default function AnalyticsPage() {
     refetch();
   };
 
+  const handleFormatChange = (checked) => {
+    if (checked) {
+      localStorage.setItem('Time_Format', '12H');
+    } else {
+      localStorage.setItem('Time_Format', '24H');
+    }
+    setIs24HourFormat(!checked);
+  };
   const formatTime = (hour) => {
     if (is24HourFormat) {
       return `${hour?.toString().padStart(2, '0')}:00`;
@@ -93,6 +101,14 @@ export default function AnalyticsPage() {
       return `${hour12}:00 ${ampm}`;
     }
   };
+  useEffect(() => {
+    const format = localStorage.getItem('Time_Format');
+    if (format == '24H') {
+      setIs24HourFormat(true);
+    } else {
+      setIs24HourFormat(false);
+    }
+  }, []);
 
   const periodLabels = {
     '24h': 'Last 24 Hours',
@@ -127,7 +143,7 @@ export default function AnalyticsPage() {
                   <span className="text-sm text-muted-foreground">24h</span>
                   <Switch
                     checked={!is24HourFormat}
-                    onCheckedChange={(checked) => setIs24HourFormat(!checked)}
+                    onCheckedChange={handleFormatChange}
                   />
                   <span className="text-sm text-muted-foreground">12h</span>
                 </div>

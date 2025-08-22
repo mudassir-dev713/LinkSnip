@@ -1,7 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Copy, ExternalLink, BarChart3, Settings, Plus } from 'lucide-react';
+import {
+  Copy,
+  ExternalLink,
+  BarChart3,
+  Settings,
+  Plus,
+  Check,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Spotlight } from './ui/spotlight';
 import { Spotlight as SpotlightNew } from './ui/spotlight-new';
@@ -20,6 +27,7 @@ export function HeroSection() {
   const [shortUrl, setShortUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [Error, setError] = useState(false);
+  const [copied, setCopied] = useState(null);
 
   const shortenMutation = useShortenUrl();
 
@@ -58,10 +66,17 @@ export function HeroSection() {
     );
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shortUrl);
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(id);
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
+      })
+      .catch();
   };
-
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Gradient */}
@@ -184,9 +199,14 @@ export function HeroSection() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyToClipboard(shortUrl)}
+                            onClick={() => copyToClipboard(shortUrl, shortUrl)}
                           >
-                            <Copy className="h-3 w-3 mr-1" /> Copy
+                            {copied == shortUrl ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}{' '}
+                            &nbsp; Copy
                           </Button>
                           <a href={shortUrl} target="_blank" rel="noreferrer">
                             <Button size="sm" variant="outline">
