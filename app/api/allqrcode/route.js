@@ -27,5 +27,7 @@ export async function GET(request) {
       createdAt: -1,
     });
   }
-  return NextResponse.json({ qr }, { status: 200 });
+  const res = NextResponse.json({ qr }, { status: 200 });
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=600');
+  return res;
 }

@@ -6,6 +6,7 @@ import Provider from '@/components/Provider';
 import QueryProvider from '@/components/QueryProvider';
 import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import { Provider as TextWrapProvider } from 'react-wrap-balancer';
+import { getServerSession } from 'next-auth';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', preload: true });
 
@@ -48,7 +49,8 @@ export const metadata = {
     images: ['https://urlsnip.vercel.app/og-image.png'],
   },
 };
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const session = await getServerSession();
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
@@ -142,7 +144,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <QueryProvider>
-          <Provider>
+          <Provider session={session}>
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
