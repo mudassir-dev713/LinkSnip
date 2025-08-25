@@ -177,7 +177,7 @@ export function useUpdateLink() {
       return json.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['links']);
+      queryClient.invalidateQueries(['urls']);
     },
   });
 
