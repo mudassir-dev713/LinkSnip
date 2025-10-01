@@ -6,7 +6,9 @@ import ShortUrl from '@/models/ShortUrl';
 export default async function UrlPage({ params }) {
   await dbConnect();
 
-  const urlData = await ShortUrl.findOne({ shortUrl: params.shortUrl }).lean();
+  const { shortUrl } = await params;
+
+  const urlData = await ShortUrl.findOne({ shortUrl: shortUrl }).lean();
 
   if (!urlData) {
     return (

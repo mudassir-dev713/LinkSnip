@@ -30,7 +30,6 @@ export default function QRGeneratorPage() {
 
   const { mutate: generateQR, data, isPending, error } = useGenerateQR();
 
-  console.log(data);
   // Keep generated QR synced with backend result
   useEffect(() => {
     if (data?.qr?.qrDataUrl) {

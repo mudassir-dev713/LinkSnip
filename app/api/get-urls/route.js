@@ -27,7 +27,7 @@ export async function GET(request) {
     });
   }
   const res = NextResponse.json({ urls }, { status: 200 });
-  res.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=600');
+  // res.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=600');
 
   return res;
 }

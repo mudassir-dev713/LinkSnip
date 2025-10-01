@@ -13,11 +13,19 @@ export function useShortenUrl() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to shorten URL');
-      return json;
+
+      // normalize response (remove message)
+      const { message, ...urlData } = json;
+      return urlData;
     },
-    onSuccess: (data) => {
-      // Update local cache of urls if you have one
-      queryClient.invalidateQueries(['urls']);
+    onSuccess: (urlData) => {
+      queryClient.setQueryData(['urls'], (old) => {
+        if (!old) return { urls: [urlData] };
+        return { urls: [urlData, ...old.urls] };
+      });
+
+      // background revalidation to stay in sync
+      queryClient.invalidateQueries(['urls'], { refetchType: 'inactive' });
     },
   });
 }

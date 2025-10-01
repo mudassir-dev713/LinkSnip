@@ -34,6 +34,17 @@ import {
   useUpdateUrlStatus,
   useUrls,
 } from '@/hooks/use-urls';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const BASE_URL =
   typeof window !== 'undefined'
@@ -188,8 +199,6 @@ export default function MyLinksPage() {
 
   const bulkDelete = () => {
     if (selectedLinks.length === 0) return;
-    const confirmed = confirm(`Delete ${selectedLinks.length} link(s)?`);
-    if (!confirmed) return;
 
     deleteUrls(selectedLinks, {
       onSuccess: () => {
@@ -350,16 +359,45 @@ export default function MyLinksPage() {
                     Export
                   </Button>
                   {selectedLinks.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={bulkDelete}
-                      className="text-destructive bg-transparent"
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete ({selectedLinks.length})
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive bg-transparent"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete ({selectedLinks.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete{' '}
+                            <span className="font-medium">
+                              {selectedLinks.length}
+                            </span>{' '}
+                            link
+                            {selectedLinks.length > 1 ? 's' : ''}. This action
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={isDeleting}>
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={bulkDelete}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </div>
               </div>
