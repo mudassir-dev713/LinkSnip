@@ -8,8 +8,8 @@ export default function SmoothScrollProvider({ children }) {
 
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 2.5, // slow & smooth
-      easing: (t) => 1 - Math.pow(1 - t, 3), // easeOutCubic: smooth acceleration/deceleration
+      duration: 0.4, // slow & smooth
+      easing: (t) => 1 - Math.pow(1 - t, 2), // easeOutCubic: smooth acceleration/deceleration
       smooth: true,
       smoothTouch: true,
       touchMultiplier: 2, // smooth on mobile too

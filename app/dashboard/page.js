@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useShortenUrl } from '@/hooks/useShortenUrl';
 import { useUrls } from '@/hooks/use-urls'; // <-- this fetches all urls
 import Head from 'next/head';
+import { useQueryClient } from '@tanstack/react-query';
 
 const BASE_URL =
   typeof window !== 'undefined'
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const [title, setTitle] = useState('');
   const [password, setPassword] = useState('');
   const [copied, setCopied] = useState(null);
+  const queryClient = useQueryClient();
 
   const { toast } = useToast();
 
@@ -84,8 +86,9 @@ export default function DashboardPage() {
             title: 'Success',
             description: 'Short URL created successfully!',
           });
+          queryClient.invalidateQueries(['urls']);
+
           setShortenLoading(false);
-          refetch(); // refresh urls after creating
         },
         onError: (error) => {
           setShortenLoading(false);
