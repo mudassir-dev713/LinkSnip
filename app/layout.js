@@ -1,5 +1,4 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
 import { ThemeProvider } from './components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import Provider from '@/components/Provider';
@@ -8,8 +7,14 @@ import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import { Provider as TextWrapProvider } from 'react-wrap-balancer';
 import { getServerSession } from 'next-auth';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap', preload: true });
+import { Inter, Poppins } from 'next/font/google';
 
+const inter = Inter({ subsets: ['latin'], display: 'swap', preload: true });
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-poppins',
+});
 export const metadata = {
   metadataBase: new URL('https://urlsnip.vercel.app'),
   title: {
@@ -142,7 +147,7 @@ export default async function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={` ${poppins.variable} ${inter.className}`}>
         <QueryProvider>
           <Provider session={session}>
             <ThemeProvider
