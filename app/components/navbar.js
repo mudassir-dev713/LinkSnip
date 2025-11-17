@@ -24,6 +24,10 @@ export function Navbar() {
       href: '/history',
     },
     {
+      name: 'Blogs',
+      href: '/blog',
+    },
+    {
       name: 'QR Generator',
       href: '/qr-generator',
     },
@@ -35,7 +39,7 @@ export function Navbar() {
   const pathname = usePathname();
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
+      <div className="min-w-full container flex h-16 items-center justify-between px-4">
         <motion.div
           className="flex items-center space-x-2"
           initial={{ opacity: 0, x: -20 }}
@@ -68,6 +72,12 @@ export function Navbar() {
               className="transition-colors hover:text-foreground/80 text-foreground/60"
             >
               History
+            </Link>
+            <Link
+              href="/blog"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Blogs
             </Link>
           </nav>
           <div className="flex items-center space-x-2">
