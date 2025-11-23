@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
       </div>
     );
   }
-
+console.log(urls)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex flex-col">
