@@ -329,8 +329,12 @@ export default function DashboardPage() {
                 Generate QR codes for your shortened URLs. This feature allows you to create 
                 scannable QR codes that link to your URLs.
               </p>
+
               <div className="space-y-2">
-                <Label>Short URL</Label>
+              {
+
+                //<Label>Short URL</Label>
+              }
                 <Input
                   placeholder="Enter your short URL"
                   value={shortUrl}
