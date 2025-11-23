@@ -1,49 +1,74 @@
-// @ts-check
+// models/Subscription.js
 import mongoose from 'mongoose';
 
 const SubscriptionSchema = new mongoose.Schema({
-  userId: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-  },
-  plan: {
-    type: String,
-    enum: ['Free', 'Pro', 'Business'],
-    default: 'Free',
-  },
-  stripeSubscriptionId: {
-    type: String,
-    required: true,
+    unique: true
   },
   stripeCustomerId: {
     type: String,
     required: true,
+    unique: true
   },
-  startDate: {
-    type: Date,
-    default: Date.now,
+  stripeSubscriptionId: {
+    type: String,
+    sparse: true
   },
-  endDate: {
-    type: Date,
+  plan: {
+    type: String,
+    enum: ['free', 'pro', 'business'],
+    default: 'free'
   },
   status: {
     type: String,
-    enum: ['active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'trialing', 'unpaid'],
-    default: 'trialing',
+    enum: ['trialing', 'active', 'past_due', 'canceled', 'incomplete', 'incomplete_expired', 'unpaid'],
+    default: 'trialing'
   },
-  paymentMethod: {
-    type: String,
-  },
+  currentPeriodStart: Date,
+  currentPeriodEnd: Date,
   cancelAtPeriodEnd: {
     type: Boolean,
-    default: false,
+    default: false
   },
-  metadata: {
-    type: mongoose.Schema.Types.Mixed,
+  usage: {
+    urlsCreated: {
+      type: Number,
+      default: 0
+    },
+    apiCalls: {
+      type: Number,
+      default: 0
+    },
+    teamMembers: {
+      type: Number,
+      default: 0
+    },
+    resetDate: {
+      type: Date,
+      default: Date.now
+    }
   },
+  planLimits: {
+    maxUrls: {
+      type: Number,
+      default: 10 // Free plan
+    },
+    maxApiCalls: {
+      type: Number,
+      default: 1000
+    },
+    maxTeamMembers: {
+      type: Number,
+      default: 0 // Free plan
+    }
+  }
 }, { timestamps: true });
 
-const Subscription = mongoose.models.Subscription || mongoose.model('Subscription', SubscriptionSchema);
+SubscriptionSchema.index({ user: 1 });
+SubscriptionSchema.index({ plan: 1, status: 1 });
 
+const Subscription = mongoose.models.Subscription || mongoose.model('Subscription', SubscriptionSchema);
 export default Subscription;
