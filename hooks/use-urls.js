@@ -1,49 +1,92 @@
 'use client';
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from './use-toast';
 
 // ✅ Fetch URLs from API
 const fetchUrls = async () => {
   const res = await fetch('/api/get-urls');
-  if (!res.ok) throw new Error('Failed to fetch URLs');
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to fetch URLs');
+  }
   return res.json();
 };
 
 export const useUrls = () => {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['urls'],
     queryFn: fetchUrls,
-    staleTime: 1000 * 60 * 20, // 20 min cache
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
+    refetchOnWindowFocus: false,
+    onError: (error) => {
+      console.error('URLs fetch error:', error);
+      // Only show toast for network errors, not auth errors
+      if (error.message && !error.message.includes('User not Found')) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load your URLs. Please refresh the page.',
+          variant: 'destructive',
+        });
+      }
+    },
   });
 };
 
 // ✅ Add new URL (mutation + invalidate cache)
 export const useAddUrl = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (newUrlData) => {
+      if (!newUrlData.url) {
+        throw new Error('URL is required');
+      }
+
       const res = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUrlData),
       });
-      if (!res.ok) throw new Error('Failed to shorten URL');
-      return res.json();
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to shorten URL');
+      }
+      
+      return data;
     },
     onSuccess: (data) => {
-      // Optimistically update cache instead of refetch
-      queryClient.setQueryData(['urls'], (old) =>
-        old ? { urls: [data, ...old.urls] } : { urls: [data] }
-      );
+      // Optimistically update cache
+      queryClient.setQueryData(['urls'], (old) => {
+        if (!old?.urls) return { urls: [data] };
+        return { urls: [data, ...old.urls] };
+      });
+
+      toast({
+        title: 'Success!',
+        description: 'Short URL created successfully',
+      });
+    },
+    onError: (error) => {
+      console.error('Add URL error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create short URL',
+        variant: 'destructive',
+      });
     },
   });
 };
 
 export const useDeleteUrls = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (ids) => {
@@ -52,16 +95,16 @@ export const useDeleteUrls = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.isArray(ids) ? ids : [ids] }),
       });
+      
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err?.error || 'Failed to delete URLs');
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete URLs');
       }
-      return res.json(); // { ids: [...] }
+      
+      return res.json();
     },
-
     onMutate: async (ids) => {
       await queryClient.cancelQueries({ queryKey: ['urls'] });
-
       const previousData = queryClient.getQueryData(['urls']);
 
       queryClient.setQueryData(['urls'], (oldData) => {
@@ -75,43 +118,33 @@ export const useDeleteUrls = () => {
 
       return { previousData };
     },
-
     onError: (err, ids, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(['urls'], context.previousData);
       }
-    },
-
-    onSuccess: (data) => {
-      queryClient.setQueryData(['urls'], (oldData) => {
-        if (!oldData?.urls) return oldData;
-        return {
-          ...oldData,
-          urls: oldData.urls.filter((url) => !data.ids.includes(url._id)),
-        };
+      
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to delete URLs',
+        variant: 'destructive',
       });
     },
-
+    onSuccess: (data, ids) => {
+      const count = Array.isArray(ids) ? ids.length : 1;
+      toast({
+        title: 'Deleted',
+        description: `${count} URL${count > 1 ? 's' : ''} deleted successfully`,
+      });
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries(['urls']);
     },
   });
 };
 
-export const useDeleteUrl = () => {
-  const deleteUrls = useDeleteUrls();
-
-  return useMutation({
-    mutationFn: async (id) => {
-      return deleteUrls.mutateAsync([id]);
-    },
-    onSuccess: deleteUrls.onSuccess,
-    onError: deleteUrls.onError,
-  });
-};
-
-export function useUpdateUrlStatus() {
+export const useUpdateUrlStatus = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, newStatus }) => {
@@ -120,18 +153,21 @@ export function useUpdateUrlStatus() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: newStatus }),
       });
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to update status');
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update status');
+      }
+      
       return { id, newStatus };
     },
-    //  optimistic update
     onMutate: async ({ id, newStatus }) => {
       await queryClient.cancelQueries(['urls']);
-
       const prevData = queryClient.getQueryData(['urls']);
 
       queryClient.setQueryData(['urls'], (old) => {
-        if (!old) return old;
+        if (!old?.urls) return old;
         return {
           ...old,
           urls: old.urls.map((url) =>
@@ -143,43 +179,24 @@ export function useUpdateUrlStatus() {
       return { prevData };
     },
     onError: (err, variables, context) => {
-      // rollback
-      queryClient.setQueryData(['urls'], context.prevData);
+      if (context?.prevData) {
+        queryClient.setQueryData(['urls'], context.prevData);
+      }
+      
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to update status',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Status updated successfully',
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries(['urls']);
     },
   });
-}
-export function useUpdateLink() {
-  const queryClient = useQueryClient();
-  const [formErrors, setFormErrors] = useState({});
-
-  const mutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const res = await fetch(`/api/edit/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        // handle validation errors
-        if (json.errors) {
-          setFormErrors(json.errors);
-        }
-        throw new Error(json.error || 'Failed to update link');
-      }
-
-      setFormErrors({});
-      return json.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['urls']);
-    },
-  });
-
-  return { ...mutation, formErrors };
-}
+};
