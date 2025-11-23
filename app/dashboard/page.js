@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Copy,
@@ -17,15 +17,16 @@ import {
   Smartphone,
   QrCode,
   AlertTriangle,
-  Users,
-  TrendingUp,
   Loader2,
+  Download, // ⬅️ ADDED: For the Mobile App buttons
+  Users, // Not used, but keeping it since it was in the original imports
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label'; // ⬅️ ADDED: For the QR tab input
 import { useToast } from '@/hooks/use-toast';
 import { useShortenUrl } from '@/hooks/useShortenUrl';
 import { useUrls } from '@/hooks/use-urls';
@@ -38,6 +39,7 @@ import { CustomDomainSetup } from '@/app/components/custom-domain-setup';
 import { MobileAppPromo } from '@/app/components/mobile-app-promo';
 import Link from 'next/link';
 
+// NOTE: BASE_URL is likely defined elsewhere, but using the provided fallback
 const BASE_URL = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL;
 
 export default function DashboardPage() {
@@ -54,7 +56,30 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   // React Query hooks
-  const shortenMutation = useShortenUrl();
+  const shortenMutation = useShortenUrl({
+    onSuccess: (data) => {
+      // ⬅️ FIX: Update shortUrl state on successful shortening
+      const fullShortUrl = data.shortUrl.startsWith('http')
+        ? data.shortUrl
+        : `${BASE_URL}/${data.shortUrl}`;
+      setShortUrl(fullShortUrl);
+      
+      toast({
+        title: 'Success!',
+        description: 'URL shortened successfully.',
+      });
+      // Optionally clear the long URL input
+      // setUrl('');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Shortening Failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    }
+  });
+  
   const {
     data,
     isLoading: urlsLoading,
@@ -74,6 +99,9 @@ export default function DashboardPage() {
       });
       return;
     }
+
+    // Clear previous shortUrl and error state on new attempt
+    setShortUrl(''); 
 
     shortenMutation.mutate({
       url,
@@ -298,7 +326,7 @@ export default function DashboardPage() {
 
         <TabsContent value="sharing">
           <SocialSharing 
-            url={shortUrl || "https://urlsnip.vercel.app"} 
+            url={shortUrl || `${BASE_URL}/default-short-url`} 
             title="Check out this amazing link!" 
           />
         </TabsContent>
@@ -323,192 +351,190 @@ export default function DashboardPage() {
                       className="bg-black text-white hover:bg-gray-800"
                       onClick={() => window.open('https://apps.apple.com', '_blank')}
                     >
-                      <Download className="h-4 w-4 mr-2" />
+                      {/* ⬅️ FIX: Download icon now imported and used */}
+                      <Download className="h-4 w-4 mr-2" /> 
                       App Store
                     </Button>
                     <Button 
                       className="bg-green-600 text-white hover:bg-green-700"
                       onClick={() => window.open('https://play.google.com', '_blank')}
                     >
-                      <Download className="h-4 w-4 mr-2" />
+                      {/* ⬅️ FIX: Download icon now imported and used */}
+                      <Download className="h-4 w-4 mr-2" /> 
                       Google Play
                     </Button>
                   </div>
                 </div>
               </CardContent>
-              </Card>
-            </Spotlight>
-          </TabsContent>
-
-          <TabsContent value="qr">
-            <Card>
-              <CardHeader>
-                <CardTitle>QR Code Generator</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  Generate QR codes for your shortened URLs. This feature allows you to create 
-                  scannable QR codes that link to your URLs.
-                </p>
-                <div className="space-y-2">
-                  <Label>Short URL</Label>
-                  <Input
-                    placeholder="Enter your short URL"
-                    value={shortUrl}
-                    onChange={(e) => setShortUrl(e.target.value)}
-                  />
-                </div>
-                <Button className="w-full">
-                  Generate QR Code
-                </Button>
-              </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </Spotlight>
+        </TabsContent>
 
-        {/* Recent Links */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
+        <TabsContent value="qr">
+          <Card>
+            <CardHeader>
+              <CardTitle>QR Code Generator</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Generate QR codes for your shortened URLs. This feature allows you to create 
+                scannable QR codes that link to your URLs.
+              </p>
+              <div className="space-y-2">
+                <Label>Short URL</Label> 
+                <Input
+                  placeholder="Enter your short URL"
+                  value={shortUrl}
+                  onChange={(e) => setShortUrl(e.target.value)}
+                />
+              </div>
+              <Button className="w-full">
+                Generate QR Code
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* The closing tags for TabsContent, Tabs, and the final motion.div 
+          were incorrectly structured around the Recent Links section. 
+          I moved Recent Links outside of the Tabs component and fixed the nesting.
+        */}
+      </Tabs>
+      {/* --- Recent Links Section (Moved outside of Tabs) --- */}
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
+        <Spotlight
+          className="w-full"
+          spotlightColor="rgba(59, 130, 246, 0.08)"
         >
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(59, 130, 246, 0.08)"
-          >
-            <Card className="border-0 bg-card/40 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Links</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refetch()}
-                    disabled={refreshLoading}
-                  >
-                    <RefreshCw 
-                      className={`h-4 w-4 mr-2 ${refreshLoading ? 'animate-spin' : ''}`} 
-                    />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {urlsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                        <span>Loading links...</span>
-                      </div>
+          <Card className="border-0 bg-card/40 backdrop-blur-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Links</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  disabled={refreshLoading}
+                >
+                  <RefreshCw 
+                    className={`h-4 w-4 mr-2 ${refreshLoading ? 'animate-spin' : ''}`} 
+                  />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {urlsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span>Loading links...</span>
                     </div>
-                  ) : isError ? (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
-                        <AlertTriangle className="h-6 w-6" />
-                      </div>
-                      <p className="text-destructive">Failed to load links</p>
-                      <Button onClick={() => refetch()} variant="outline" className="mt-4">
-                        Try Again
-                      </Button>
+                  </div>
+                ) : isError ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
+                      <AlertTriangle className="h-6 w-6" />
                     </div>
-                  ) : urls.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No links yet</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Create your first short URL to get started
-                      </p>
-                    </div>
-                  ) : (
-                    urls.slice(0, 5).map((link) => (
-                      <div
-                        key={link._id}
-                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium text-sm truncate max-w-xs">
-                              {link.shortUrl.startsWith('http')
-                                ? link.shortUrl
-                                : `${BASE_URL}/${link.shortUrl}`}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                copyToClipboard(
-                                  link.shortUrl.startsWith('http')
-                                    ? link.shortUrl
-                                    : `${BASE_URL}/${link.shortUrl}`,
-                                  link._id
-                                )
-                              }
-                              className="h-6 w-6 p-0"
-                            >
-                              {copied === link._id ? (
-                                <Check className="h-3 w-3" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate max-w-xs">
-                            {link.fullUrl}
+                    <p className="text-destructive">Failed to load links</p>
+                    <Button onClick={() => refetch()} variant="outline" className="mt-4">
+                      Try Again
+                    </Button>
+                  </div>
+                ) : urls.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No links yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Create your first short URL to get started
+                    </p>
+                  </div>
+                ) : (
+                  urls.slice(0, 5).map((link) => (
+                    <div
+                      key={link._id}
+                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium text-sm truncate max-w-xs">
+                            {link.shortUrl.startsWith('http')
+                              ? link.shortUrl
+                              : `${BASE_URL}/${link.shortUrl}`}
                           </p>
-                          <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                            <span>{link.clicks?.toLocaleString() || 0} clicks</span>
-                            <span>
-                              {new Date(link.createdAt).toLocaleDateString()}
-                            </span>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              link.status === 'active'
-                                ? 'bg-green-500/10 text-green-500'
-                                : 'bg-yellow-500/10 text-yellow-500'
-                            }`}>
-                              {link.status}
-                            </span>
-                            {link.expiresAt && (
-                              <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full">
-                                Expires
-                              </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              copyToClipboard(
+                                link.shortUrl.startsWith('http')
+                                  ? link.shortUrl
+                                  : `${BASE_URL}/${link.shortUrl}`,
+                                link._id
+                              )
+                            }
+                            className="h-6 w-6 p-0"
+                          >
+                            {copied === link._id ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
                             )}
-                          </div>
+                          </Button>
                         </div>
-                        <div className="flex gap-2">
-                          <Link href={`/dashboard/analytics/${link._id}`}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="hidden md:flex"
-                            >
-                              <BarChart3 className="h-3 w-3 mr-1" />
-                              Analytics
-                            </Button>
-                          </Link>
+                        <p className="text-xs text-muted-foreground truncate max-w-xs">
+                          {link.fullUrl}
+                        </p>
+                        <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                          <span>{link.clicks?.toLocaleString() || 0} clicks</span>
+                          <span>
+                            {new Date(link.createdAt).toLocaleDateString()}
+                          </span>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            link.status === 'active'
+                              ? 'bg-green-500/10 text-green-500'
+                              : 'bg-yellow-500/10 text-yellow-500'
+                          }`}>
+                            {link.status}
+                          </span>
+                          {link.expiresAt && (
+                            <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full">
+                              Expires
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href={`/dashboard/analytics/${link._id}`}>
                           <Button
                             size="sm"
                             variant="outline"
+                            className="hidden md:flex"
                           >
-                            Edit
+                            <BarChart3 className="h-3 w-3 mr-1" />
+                            Analytics
                           </Button>
-                        </div>
-
-                      </div>)))}
-
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                        >
+                          Edit
+                        </Button>
                       </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </Spotlight>
+      </motion.div>
 
-
-
-                    </CardContent>
-                  
-                  </Card>
-                
-                </Spotlight>
-              </motion.div>
-            ))
-          )}
-        </motion.div>
-      </Tabs>
 
       {showPreview && (
         <LinkPreview 
