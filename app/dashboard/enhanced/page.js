@@ -95,7 +95,7 @@ export default function EnhancedDashboard() {
             <span className="hidden sm:inline">Retargeting</span>
           </TabsTrigger>
           <TabsTrigger value="expiration" className="flex items-center gap-2">
-           // <Clock className="h-4 w-4" />
+           
             <span className="hidden sm:inline">Expiration</span>
           </TabsTrigger>
           <TabsTrigger value="sharing" className="flex items-center gap-2">
