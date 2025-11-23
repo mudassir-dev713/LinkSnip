@@ -28,6 +28,6 @@ export async function GET(request) {
     });
   }
   const res = NextResponse.json({ qr }, { status: 200 });
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=600');
+  res.headers.set('Cache-Control', 's-maxage=1, stale-while-revalidate');
   return res;
 }
