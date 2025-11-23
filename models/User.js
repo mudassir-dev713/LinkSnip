@@ -27,6 +27,7 @@ const UserSchema = new mongoose.Schema(
     },
     resetPasswordToken: {
       type: String,
+      default: Date.now,
     },
     resetPasswordExpires: {
       type: Date,
@@ -36,6 +37,13 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ['Free', 'Pro', 'Business'],
       default: 'Free',
+    },
+    stripeCustomerId: {
+      type: String,
+    },
+    apiKeys: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }
