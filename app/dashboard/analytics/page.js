@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
                           
                           {showUrlDropdown && (
                             <div className="absolute top-full left-0 mt-2 w-full sm:w-96 bg-card border border-border rounded-lg shadow-xl z-50 max-h-60 overflow-y-scroll">
-                              {urls.map((url) => (
+                              {urls?.map((url) => (
                                 <button
                                   key={url._id}
                                   onClick={() => {
