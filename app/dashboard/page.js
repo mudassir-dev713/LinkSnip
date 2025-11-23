@@ -15,7 +15,9 @@ import {
   FileText,
   Share2,
   Smartphone,
-  QrCode
+  QrCode,
+  Download
+
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
