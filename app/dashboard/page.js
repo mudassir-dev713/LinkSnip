@@ -17,6 +17,7 @@ import {
   Smartphone,
   QrCode,
   Download
+  ,Label
 
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
