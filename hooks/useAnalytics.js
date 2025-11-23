@@ -10,7 +10,7 @@ export const useAnalytics = (urlId, period) => {
       if (!res.ok) throw new Error('Failed to fetch analytics');
       return res.json();
     },
-    enabled: !!urlId, // don’t fetch until a URL is selected
+    enabled: !!urlId, // don't fetch until a URL is selected
     refetchOnWindowFocus: false,
   });
 };

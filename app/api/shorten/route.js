@@ -11,7 +11,7 @@ import { generateAnonId } from '@/utils/helper';
 
 export async function POST(req) {
   try {
-    const { url, password, customAlias, title, expirationDate } = await req.json();
+    const { url, password, customAlias, title, expirationHours } = await req.json();
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
@@ -38,8 +38,9 @@ export async function POST(req) {
         );
         
         // Set expiration if provided
-        if (expirationDate) {
-          shorturl.expiresAt = new Date(expirationDate);
+        if (expirationHours) {
+          const expirationDate = new Date(Date.now() + parseInt(expirationHours) * 60 * 60 * 1000);
+          shorturl.expiresAt = expirationDate;
           await shorturl.save();
         }
       } catch (err) {
@@ -76,8 +77,9 @@ export async function POST(req) {
       shorturl = await createShortUrlWithoutUser(formattedUrl, anonId, title);
 
       // Set expiration if provided
-      if (expirationDate) {
-        shorturl.expiresAt = new Date(expirationDate);
+      if (expirationHours) {
+        const expirationDate = new Date(Date.now() + parseInt(expirationHours) * 60 * 60 * 1000);
+        shorturl.expiresAt = expirationDate;
         await shorturl.save();
       }
 

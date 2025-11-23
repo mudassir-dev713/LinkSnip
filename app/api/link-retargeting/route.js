@@ -17,7 +17,7 @@ export async function POST(request) {
     const { linkId, rules } = body;
 
     // Validate rules format
-    if (!Array.isArray(rules)) {
+    if (!Array.isArray(rules) || rules.length === 0) {
       return NextResponse.json({ error: 'Invalid rules format' }, { status: 400 });
     }
 
@@ -31,9 +31,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Link not found' }, { status: 404 });
     }
 
-    // In a real implementation, you would save these rules to the database
-    // For now, we'll just simulate the process
-    console.log('Saving retargeting rules for link:', linkId, rules);
+    // Save retargeting rules to the database
+    link.retargetingRules = rules;
+    await link.save();
 
     return NextResponse.json({ 
       success: true, 

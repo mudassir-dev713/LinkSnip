@@ -33,9 +33,13 @@ export async function POST(request) {
     const body = await request.json();
     const { domain } = body;
 
+    if (!domain || !domain.includes('.')) {
+      return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
+    }
+
     // Check if domain already exists for this user
     const existingDomain = await Domain.findOne({ 
-      domain: domain.toLowerCase(), 
+      domain: domain.toLowerCase().trim(), 
       user: session.user.id 
     });
 
@@ -45,7 +49,7 @@ export async function POST(request) {
 
     // Create new domain entry
     const newDomain = new Domain({
-      domain: domain.toLowerCase(),
+      domain: domain.toLowerCase().trim(),
       user: session.user.id,
       verificationToken: Math.random().toString(36).substring(2, 15),
       verificationMethod: 'DNS'
@@ -71,31 +75,31 @@ export async function PUT(request) {
     const body = await request.json();
     const { domainId, action } = body;
 
-    if (action === 'verify') {
-      // In a real implementation, you would check DNS records here
-      // For now, we'll simulate verification
-      const domain = await Domain.findOne({ 
-        _id: domainId, 
-        user: session.user.id 
-      });
-
-      if (!domain) {
-        return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
-      }
-
-      // Simulate verification (80% success rate)
-      const isVerified = Math.random() > 0.2;
-      
-      if (isVerified) {
-        domain.isVerified = true;
-        await domain.save();
-        return NextResponse.json({ success: true, domain });
-      } else {
-        return NextResponse.json({ error: 'Verification failed' }, { status: 400 });
-      }
+    if (action !== 'verify') {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    // Find the domain and ensure it belongs to the user
+    const domain = await Domain.findOne({ 
+      _id: domainId, 
+      user: session.user.id 
+    });
+
+    if (!domain) {
+      return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
+    }
+
+    // In a real implementation, you would check DNS records here
+    // For demo purposes, we'll simulate verification
+    const isVerified = Math.random() > 0.3; // 70% success rate
+    
+    if (isVerified) {
+      domain.isVerified = true;
+      await domain.save();
+      return NextResponse.json({ success: true, domain });
+    } else {
+      return NextResponse.json({ error: 'Verification failed' }, { status: 400 });
+    }
   } catch (error) {
     console.error('Error verifying domain:', error);
     return NextResponse.json({ error: 'Failed to verify domain' }, { status: 500 });

@@ -21,14 +21,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No URLs provided' }, { status: 400 });
     }
 
-    // Limit to 100 URLs per request
-    if (urls.length > 100) {
-      return NextResponse.json({ error: 'Maximum 100 URLs per request' }, { status: 400 });
-    }
-
+    // Limit to 50 URLs per request for demo
+    const urlList = urls.slice(0, 50);
     const results = [];
     
-    for (const url of urls) {
+    for (const url of urlList) {
       try {
         // Validate URL format
         let formattedUrl = url.trim();

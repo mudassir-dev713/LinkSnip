@@ -88,7 +88,6 @@ export async function POST(req, { params }) {
           case 'referrer':
             matches = (referrer || '').toLowerCase().includes(rule.value.toLowerCase());
             break;
-          // Time-based rules would need more complex logic
         }
         
         if (matches) {

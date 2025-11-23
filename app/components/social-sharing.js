@@ -1,19 +1,19 @@
 'use client';
 
 import {
-  FacebookIcon,
   FacebookShareButton,
-  TwitterIcon,
   TwitterShareButton,
-  LinkedinIcon,
   LinkedinShareButton,
-  WhatsappIcon,
   WhatsappShareButton,
-  EmailIcon,
   EmailShareButton,
+  FacebookIcon,
+  TwitterIcon,
+  LinkedinIcon,
+  WhatsappIcon,
+  EmailIcon,
 } from 'react-share';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Check } from 'lucide-react';
@@ -50,41 +50,33 @@ export function SocialSharing({ url, title = 'Check out this link!' }) {
 
         <div className="space-y-4">
           <Label>Share on Social Media</Label>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <FacebookShareButton url={url} quote={title}>
-                <FacebookIcon size={48} round />
+                <FacebookIcon size={40} round />
               </FacebookShareButton>
               <p className="text-xs mt-1">Facebook</p>
             </div>
             
-            <div className="text-center">
-              <TwitterShareButton url={url} title={title}>
-                <TwitterIcon size={48} round />
-              </TwitterShareButton>
-              <p className="text-xs mt-1">Twitter</p>
-            </div>
+            <TwitterShareButton url={url} title={title}>
+              <TwitterIcon size={40} round />
+            </TwitterShareButton>
+            <p className="text-xs mt-1">Twitter</p>
             
-            <div className="text-center">
-              <LinkedinShareButton url={url} title={title}>
-                <LinkedinIcon size={48} round />
-              </LinkedinShareButton>
-              <p className="text-xs mt-1">LinkedIn</p>
-            </div>
+            <LinkedinShareButton url={url} title={title}>
+              <LinkedinIcon size={40} round />
+            </LinkedinShareButton>
+            <p className="text-xs mt-1">LinkedIn</p>
             
-            <div className="text-center">
-              <WhatsappShareButton url={url} title={title}>
-                <WhatsappIcon size={48} round />
-              </WhatsappShareButton>
-              <p className="text-xs mt-1">WhatsApp</p>
-            </div>
+            <WhatsappShareButton url={url} title={title}>
+              <WhatsappIcon size={40} round />
+            </WhatsappShareButton>
+            <p className="text-xs mt-1">WhatsApp</p>
             
-            <div className="text-center">
-              <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
-                <EmailIcon size={48} round />
-              </EmailShareButton>
-              <p className="text-xs mt-1">Email</p>
-            </div>
+            <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
+              <EmailIcon size={40} round />
+            </EmailShareButton>
+            <p className="text-xs mt-1">Email</p>
           </div>
         </div>
       </CardContent>

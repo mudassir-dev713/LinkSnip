@@ -19,10 +19,10 @@ export function useBulkShorten() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: 'Success',
-        description: 'URLs shortened successfully',
+        description: `Processed ${data.results.length} URLs`,
       });
     },
     onError: (error) => {
