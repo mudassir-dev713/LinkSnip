@@ -336,6 +336,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </CardContent>
+              </Card>
             </Spotlight>
           </TabsContent>
 
@@ -495,6 +496,7 @@ export default function DashboardPage() {
                       
                     </CardContent>
                   </Card>
+                
                 </Spotlight>
               </motion.div>
             ))
