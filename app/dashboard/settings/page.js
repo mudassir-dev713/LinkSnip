@@ -27,6 +27,7 @@ import {
 } from '../../components/ui/card';
 import { Switch } from '../../components/ui/switch';
 import { useSession } from 'next-auth/react';
+import { SubscriptionPlans } from '@/app/components/subscription-plans';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -273,123 +274,6 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </Spotlight>
-        </motion.div>
-
-        {/* Preferences */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="space-y-6"
-        >
-          {/* Notifications */}
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(34, 197, 94, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <span>Notifications</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  {
-                    key: 'emailNotifications',
-                    label: 'Email Notifications',
-                    description: 'Receive updates via email',
-                  },
-                  {
-                    key: 'clickAlerts',
-                    label: 'Click Alerts',
-                    description: 'Get notified when links are clicked',
-                  },
-                  {
-                    key: 'weeklyReports',
-                    label: 'Weekly Reports',
-                    description: 'Receive weekly analytics reports',
-                  },
-                  {
-                    key: 'securityAlerts',
-                    label: 'Security Alerts',
-                    description: 'Important security notifications',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border/50"
-                  >
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={notifications[item.key]}
-                      onCheckedChange={(checked) =>
-                        handleNotificationChange(item.key, checked)
-                      }
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </Spotlight>
-
-          {/* Privacy Settings */}
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(168, 85, 247, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <span>Privacy & Security</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  {
-                    key: 'publicProfile',
-                    label: 'Public Profile',
-                    description: 'Make your profile visible to others',
-                  },
-                  {
-                    key: 'analyticsSharing',
-                    label: 'Analytics Sharing',
-                    description: 'Share anonymous analytics data',
-                  },
-                  {
-                    key: 'dataCollection',
-                    label: 'Data Collection',
-                    description: 'Allow additional data collection',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border/50"
-                  >
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={privacy[item.key]}
-                      onCheckedChange={(checked) =>
-                        handlePrivacyChange(item.key, checked)
-                      }
-                    />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </Spotlight>
 
           {/* Data Management */}
           <Spotlight
@@ -426,6 +310,31 @@ export default function SettingsPage() {
                   Deleting your account will permanently remove all your data
                   and cannot be undone.
                 </p>
+              </CardContent>
+            </Card>
+          </Spotlight>
+        </motion.div>
+
+        {/* Subscription Plans */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="space-y-6"
+        >
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(34, 197, 94, 0.15)"
+          >
+            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  <span>Subscription Plans</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <SubscriptionPlans />
               </CardContent>
             </Card>
           </Spotlight>

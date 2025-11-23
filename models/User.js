@@ -32,6 +32,11 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    plan: {
+      type: String,
+      enum: ['Free', 'Pro', 'Business'],
+      default: 'Free',
+    },
   },
   { timestamps: true }
 );
