@@ -604,7 +604,7 @@ export default function MyLinksPage() {
                               {/* Stats */}
                               <div className="flex items-center gap-6 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1">
-                                  <Link className="h-4 w-4" />
+                                  <ExternalLink className="h-4 w-4" />
                                   <span>{link.clicks?.toLocaleString() || 0} clicks</span>
                                 </div>
                                 <div className="flex items-center gap-1">
