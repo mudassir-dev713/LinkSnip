@@ -6,12 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Save } from 'lucide-react';
+import { useRetargeting } from '@/hooks/useRetargeting';
+import { useToast } from '@/hooks/use-toast';
 
-export function LinkRetargeting() {
+export function LinkRetargeting({ linkId }) {
   const [rules, setRules] = useState([
     { id: 1, condition: 'device', value: 'mobile', url: '' },
   ]);
+  const { saveRules, isLoading } = useRetargeting();
+  const { toast } = useToast();
 
   const addRule = () => {
     setRules([
@@ -37,10 +41,37 @@ export function LinkRetargeting() {
     }
   };
 
+  const handleSave = async () => {
+    if (!linkId) {
+      toast({
+        title: 'Error',
+        description: 'No link selected',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await saveRules.mutateAsync({ linkId, rules });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Link Retargeting</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          <span>Link Retargeting</span>
+          <Button onClick={handleSave} disabled={isLoading}>
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? 'Saving...' : 'Save Rules'}
+          </Button>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -49,7 +80,7 @@ export function LinkRetargeting() {
           </div>
 
           {rules.map((rule, index) => (
-            <div key={rule.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+            <div key={rule.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end p-3 border rounded-lg">
               <div className="md:col-span-3">
                 <Label>Condition</Label>
                 <Select 

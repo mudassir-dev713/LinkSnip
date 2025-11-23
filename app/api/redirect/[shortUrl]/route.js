@@ -28,6 +28,14 @@ export async function POST(req, { params }) {
       );
     }
 
+    // Check if link has expired
+    if (urlDoc.expiresAt && new Date(urlDoc.expiresAt) < new Date()) {
+      return NextResponse.json(
+        { success: false, error: 'Link expired' },
+        { status: 410 }
+      );
+    }
+
     await ShortUrl.updateOne({ _id: urlDoc._id }, { $inc: { clicks: 1 } });
 
     const headers = req.headers;
@@ -61,7 +69,40 @@ export async function POST(req, { params }) {
       hour: new Date().getHours(),
     });
 
-    return NextResponse.json({ success: true, click });
+    // Check retargeting rules
+    let redirectUrl = urlDoc.fullUrl;
+    if (urlDoc.retargetingRules && urlDoc.retargetingRules.length > 0) {
+      for (const rule of urlDoc.retargetingRules) {
+        let matches = false;
+        
+        switch (rule.condition) {
+          case 'device':
+            matches = deviceType.toLowerCase() === rule.value.toLowerCase();
+            break;
+          case 'country':
+            matches = country.toLowerCase() === rule.value.toLowerCase();
+            break;
+          case 'browser':
+            matches = (userAgent.browser.name || '').toLowerCase().includes(rule.value.toLowerCase());
+            break;
+          case 'referrer':
+            matches = (referrer || '').toLowerCase().includes(rule.value.toLowerCase());
+            break;
+          // Time-based rules would need more complex logic
+        }
+        
+        if (matches) {
+          redirectUrl = rule.redirectUrl;
+          break;
+        }
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      click,
+      redirectUrl 
+    });
   } catch (error) {
     console.error('Click tracking error:', error);
     return NextResponse.json(

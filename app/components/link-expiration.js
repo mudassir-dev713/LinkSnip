@@ -8,11 +8,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { CalendarIcon, Clock, Save } from 'lucide-react';
 
-export function LinkExpiration({ onExpirationChange }) {
-  const [expirationType, setExpirationType] = useState('never');
-  const [customDate, setCustomDate] = useState(null);
+export function LinkExpiration({ onExpirationChange, currentExpiration }) {
+  const [expirationType, setExpirationType] = useState(currentExpiration ? 'date' : 'never');
+  const [customDate, setCustomDate] = useState(currentExpiration ? new Date(currentExpiration) : null);
   const [hours, setHours] = useState(24);
 
   const handleExpirationChange = () => {
@@ -30,9 +30,15 @@ export function LinkExpiration({ onExpirationChange }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Link Expiration
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Link Expiration
+          </div>
+          <Button onClick={handleExpirationChange} size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -72,7 +78,6 @@ export function LinkExpiration({ onExpirationChange }) {
                   value={hours}
                   onChange={(e) => setHours(parseInt(e.target.value) || 1)}
                 />
-                <Button onClick={handleExpirationChange}>Set Expiration</Button>
               </div>
               <p className="text-sm text-muted-foreground">
                 Link will expire at {format(addHours(new Date(), hours), 'MMM d, yyyy h:mm a')}
@@ -103,13 +108,6 @@ export function LinkExpiration({ onExpirationChange }) {
                   />
                 </PopoverContent>
               </Popover>
-              <Button 
-                onClick={handleExpirationChange}
-                disabled={!customDate}
-                className="w-full"
-              >
-                Set Expiration Date
-              </Button>
               {customDate && (
                 <p className="text-sm text-muted-foreground">
                   Link will expire at {format(customDate, 'MMM d, yyyy')}

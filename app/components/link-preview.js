@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ExternalLink, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function LinkPreview({ url, onContinue, onCancel }) {
@@ -17,7 +17,7 @@ export function LinkPreview({ url, onContinue, onCancel }) {
     const fetchPreview = async () => {
       try {
         setLoading(true);
-        // In a real app, this would call a backend service to fetch preview data
+        // In production, this would call a real preview service
         // For now, we'll simulate with a timeout
         await new Promise(resolve => setTimeout(resolve, 1500));
         
@@ -29,8 +29,8 @@ export function LinkPreview({ url, onContinue, onCancel }) {
           domain: new URL(url).hostname,
         });
         
-        // Simulate safety check
-        setSafe(Math.random() > 0.2); // 80% chance of being safe
+        // Simulate safety check (80% chance of being safe)
+        setSafe(Math.random() > 0.2);
       } catch (error) {
         toast({
           title: 'Preview Error',
@@ -51,7 +51,15 @@ export function LinkPreview({ url, onContinue, onCancel }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="absolute right-4 top-4"
+          onClick={onCancel}
+        >
+          <X className="h-4 w-4" />
+        </Button>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Link Preview</h3>

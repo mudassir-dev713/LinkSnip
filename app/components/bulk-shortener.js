@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileText, Link, Download } from 'lucide-react';
+import { Upload, FileText, Link, Download, X } from 'lucide-react';
+import { useBulkShorten } from '@/hooks/useBulkShorten';
 
-export function BulkShortener({ onShorten }) {
+export function BulkShortener() {
   const [urls, setUrls] = useState('');
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { bulkShorten, isLoading } = useBulkShorten();
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -52,46 +53,20 @@ export function BulkShortener({ onShorten }) {
       return;
     }
 
-    setLoading(true);
-    setResults([]);
-
     try {
-      const results = [];
-      for (const url of urlList) {
-        try {
-          // In a real implementation, this would call your shorten API
-          // For demo purposes, we'll simulate the response
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          const shortUrl = `https://urlsnip.vercel.app/${Math.random().toString(36).substring(2, 8)}`;
-          results.push({
-            original: url,
-            short: shortUrl,
-            status: 'success',
-          });
-        } catch (error) {
-          results.push({
-            original: url,
-            short: null,
-            status: 'error',
-            error: error.message,
-          });
-        }
-      }
+      const response = await bulkShorten.mutateAsync(urlList);
+      setResults(response.results);
       
-      setResults(results);
       toast({
         title: 'Bulk Shortening Complete',
-        description: `Processed ${results.length} URLs`,
+        description: `Processed ${response.results.length} URLs`,
       });
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to process URLs',
+        description: error.message || 'Failed to process URLs',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -112,12 +87,23 @@ export function BulkShortener({ onShorten }) {
     URL.revokeObjectURL(url);
   };
 
+  const clearResults = () => {
+    setResults([]);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Bulk URL Shortener
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Bulk URL Shortener
+          </div>
+          {results.length > 0 && (
+            <Button variant="ghost" size="icon" onClick={clearResults}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -149,10 +135,10 @@ export function BulkShortener({ onShorten }) {
             
             <Button 
               onClick={handleShorten} 
-              disabled={loading || !urls.trim()}
+              disabled={isLoading || !urls.trim()}
               className="w-full"
             >
-              {loading ? 'Processing...' : 'Shorten All URLs'}
+              {isLoading ? 'Processing...' : 'Shorten All URLs'}
             </Button>
           </div>
           

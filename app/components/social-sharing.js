@@ -50,26 +50,41 @@ export function SocialSharing({ url, title = 'Check out this link!' }) {
 
         <div className="space-y-4">
           <Label>Share on Social Media</Label>
-          <div className="flex flex-wrap gap-2">
-            <FacebookShareButton url={url} quote={title}>
-              <FacebookIcon size={40} round />
-            </FacebookShareButton>
+          <div className="flex flex-wrap gap-4">
+            <div className="text-center">
+              <FacebookShareButton url={url} quote={title}>
+                <FacebookIcon size={48} round />
+              </FacebookShareButton>
+              <p className="text-xs mt-1">Facebook</p>
+            </div>
             
-            <TwitterShareButton url={url} title={title}>
-              <TwitterIcon size={40} round />
-            </TwitterShareButton>
+            <div className="text-center">
+              <TwitterShareButton url={url} title={title}>
+                <TwitterIcon size={48} round />
+              </TwitterShareButton>
+              <p className="text-xs mt-1">Twitter</p>
+            </div>
             
-            <LinkedinShareButton url={url} title={title}>
-              <LinkedinIcon size={40} round />
-            </LinkedinShareButton>
+            <div className="text-center">
+              <LinkedinShareButton url={url} title={title}>
+                <LinkedinIcon size={48} round />
+              </LinkedinShareButton>
+              <p className="text-xs mt-1">LinkedIn</p>
+            </div>
             
-            <WhatsappShareButton url={url} title={title}>
-              <WhatsappIcon size={40} round />
-            </WhatsappShareButton>
+            <div className="text-center">
+              <WhatsappShareButton url={url} title={title}>
+                <WhatsappIcon size={48} round />
+              </WhatsappShareButton>
+              <p className="text-xs mt-1">WhatsApp</p>
+            </div>
             
-            <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
-              <EmailIcon size={40} round />
-            </EmailShareButton>
+            <div className="text-center">
+              <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
+                <EmailIcon size={48} round />
+              </EmailShareButton>
+              <p className="text-xs mt-1">Email</p>
+            </div>
           </div>
         </div>
       </CardContent>

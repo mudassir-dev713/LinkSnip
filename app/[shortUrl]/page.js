@@ -18,5 +18,19 @@ export default async function UrlPage({ params }) {
     );
   }
 
+  // Check if link has expired
+  if (urlData.expiresAt && new Date(urlData.expiresAt) < new Date()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Link Expired</h2>
+          <p className="text-muted-foreground">
+            This link is no longer active.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return <UrlInfoClient urlData={JSON.parse(JSON.stringify(urlData))} />;
 }

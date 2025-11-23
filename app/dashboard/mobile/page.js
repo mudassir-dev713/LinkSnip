@@ -12,16 +12,30 @@ import {
   History, 
   Settings,
   Menu,
-  X
+  X,
+  Globe,
+  FileText,
+  Share2,
+  Clock,
+  Smartphone
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { MobileAppPromo } from '@/app/components/mobile-app-promo';
+import { LinkExpiration } from '@/app/components/link-expiration';
+import { LinkRetargeting } from '@/app/components/link-retargeting';
+import { LinkPreview } from '@/app/components/link-preview';
+import { BulkShortener } from '@/app/components/bulk-shortener';
+import { SocialSharing } from '@/app/components/social-sharing';
+import { AdvancedAnalytics } from '@/app/components/advanced-analytics';
+import { CustomDomainSetup } from '@/app/components/custom-domain-setup';
 
 export default function MobileDashboard() {
   const [url, setUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [activeTab, setActiveTab] = useState('shorten');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
   const { toast } = useToast();
 
   const handleShorten = () => {
@@ -52,10 +66,28 @@ export default function MobileDashboard() {
     });
   };
 
+  const handlePreview = () => {
+    if (!shortUrl) {
+      toast({
+        title: 'Error',
+        description: 'Please create a short URL first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setPreviewUrl(shortUrl);
+    setShowPreview(true);
+  };
+
   const navItems = [
     { id: 'shorten', label: 'Shorten', icon: Plus },
+    { id: 'bulk', label: 'Bulk', icon: FileText },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'qr', label: 'QR Codes', icon: QrCode },
+    { id: 'domains', label: 'Domains', icon: Globe },
+    { id: 'retargeting', label: 'Retargeting', icon: Share2 },
+    { id: 'expiration', label: 'Expiration', icon: Clock },
+    { id: 'sharing', label: 'Sharing', icon: Share2 },
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -160,6 +192,13 @@ export default function MobileDashboard() {
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePreview}
+                      >
+                        <Smartphone className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -198,6 +237,29 @@ export default function MobileDashboard() {
           </Card>
         )}
 
+        {activeTab === 'domains' && (
+          <CustomDomainSetup />
+        )}
+
+        {activeTab === 'retargeting' && (
+          <LinkRetargeting />
+        )}
+
+        {activeTab === 'expiration' && (
+          <LinkExpiration onExpirationChange={(date) => console.log('Expiration set:', date)} />
+        )}
+
+        {activeTab === 'sharing' && (
+          <SocialSharing 
+            url={shortUrl || "https://urlsnip.vercel.app"} 
+            title="Check out this amazing link!" 
+          />
+        )}
+
+        {activeTab === 'bulk' && (
+          <BulkShortener />
+        )}
+
         {activeTab === 'history' && (
           <Card>
             <CardHeader>
@@ -230,7 +292,7 @@ export default function MobileDashboard() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t md:hidden">
         <div className="grid grid-cols-5">
-          {navItems.map((item) => {
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
             return (
               <Button
@@ -249,6 +311,17 @@ export default function MobileDashboard() {
           })}
         </div>
       </nav>
+
+      {showPreview && (
+        <LinkPreview 
+          url={previewUrl} 
+          onContinue={() => {
+            window.open(previewUrl, '_blank');
+            setShowPreview(false);
+          }}
+          onCancel={() => setShowPreview(false)}
+        />
+      )}
     </div>
   );
 }

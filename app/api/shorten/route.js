@@ -11,7 +11,7 @@ import { generateAnonId } from '@/utils/helper';
 
 export async function POST(req) {
   try {
-    const { url, password, customAlias, title } = await req.json();
+    const { url, password, customAlias, title, expirationDate } = await req.json();
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
@@ -36,6 +36,12 @@ export async function POST(req) {
           password,
           title
         );
+        
+        // Set expiration if provided
+        if (expirationDate) {
+          shorturl.expiresAt = new Date(expirationDate);
+          await shorturl.save();
+        }
       } catch (err) {
         if (
           err.message.includes('Custom alias already exists') ||
@@ -69,6 +75,12 @@ export async function POST(req) {
       }
       shorturl = await createShortUrlWithoutUser(formattedUrl, anonId, title);
 
+      // Set expiration if provided
+      if (expirationDate) {
+        shorturl.expiresAt = new Date(expirationDate);
+        await shorturl.save();
+      }
+
       const response = NextResponse.json({
         _id: shorturl._id,
         message: 'Short URL created successfully',
@@ -80,6 +92,7 @@ export async function POST(req) {
         user: shorturl.user || null,
         password: shorturl.password || null,
         status: shorturl.status || 'active',
+        expiresAt: shorturl.expiresAt || null,
       });
 
       if (setNewCookie) {
@@ -101,6 +114,7 @@ export async function POST(req) {
       user: shorturl.user || null,
       password: shorturl.password || null,
       status: shorturl.status || 'active',
+      expiresAt: shorturl.expiresAt || null,
     });
   } catch (error) {
     console.error('Error creating short URL:', error);

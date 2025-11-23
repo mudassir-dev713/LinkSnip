@@ -10,6 +10,12 @@ import {
   Settings,
   RefreshCw,
   Check,
+  Clock,
+  Globe,
+  FileText,
+  Share2,
+  Smartphone,
+  QrCode
 } from 'lucide-react';
 import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
@@ -20,12 +26,21 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { useToast } from '@/hooks/use-toast';
 import { useShortenUrl } from '@/hooks/useShortenUrl';
-import { useUrls } from '@/hooks/use-urls'; // <-- this fetches all urls
+import { useUrls } from '@/hooks/use-urls';
 import Head from 'next/head';
 import { useQueryClient } from '@tanstack/react-query';
+import { LinkExpiration } from '@/app/components/link-expiration';
+import { LinkRetargeting } from '@/app/components/link-retargeting';
+import { LinkPreview } from '@/app/components/link-preview';
+import { BulkShortener } from '@/app/components/bulk-shortener';
+import { SocialSharing } from '@/app/components/social-sharing';
+import { AdvancedAnalytics } from '@/app/components/advanced-analytics';
+import { CustomDomainSetup } from '@/app/components/custom-domain-setup';
+import { MobileAppPromo } from '@/app/components/mobile-app-promo';
 
 const BASE_URL =
   typeof window !== 'undefined'
@@ -41,6 +56,9 @@ export default function DashboardPage() {
   const [title, setTitle] = useState('');
   const [password, setPassword] = useState('');
   const [copied, setCopied] = useState(null);
+  const [activeTab, setActiveTab] = useState('shorten');
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
   const queryClient = useQueryClient();
 
   const { toast } = useToast();
@@ -114,6 +132,19 @@ export default function DashboardPage() {
       .catch();
   };
 
+  const handlePreview = () => {
+    if (!shortUrl) {
+      toast({
+        title: 'Error',
+        description: 'Please create a short URL first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setPreviewUrl(shortUrl);
+    setShowPreview(true);
+  };
+
   return (
     <>
       <Head>
@@ -138,111 +169,182 @@ export default function DashboardPage() {
           </p>
         </motion.div>
 
-        {/* Quick Shortener */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(59, 130, 246, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Plus className="h-5 w-5 text-primary" />
-                  <span>Create Short URL</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Input
-                    placeholder="Enter your long URL here..."
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className="flex-1 h-12 text-base"
-                  />
-                  <Button
-                    onClick={handleShorten}
-                    disabled={!url || shortenLoading}
-                    className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600"
-                  >
-                    {shortenLoading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        Shorten <Plus className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+            <TabsTrigger value="shorten" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Shorten</span>
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Bulk</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="domains" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Domains</span>
+            </TabsTrigger>
+            <TabsTrigger value="retargeting" className="flex items-center gap-2">
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Retargeting</span>
+            </TabsTrigger>
+            <TabsTrigger value="expiration" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Expiration</span>
+            </TabsTrigger>
+            <TabsTrigger value="sharing" className="flex items-center gap-2">
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Sharing</span>
+            </TabsTrigger>
+            <TabsTrigger value="mobile" className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              <span className="hidden sm:inline">Mobile</span>
+            </TabsTrigger>
+          </TabsList>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAdvanced((p) => !p)}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  {showAdvanced ? 'Hide Advanced' : 'Advanced Options'}
-                </Button>
+          <TabsContent value="shorten">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <Spotlight
+                className="w-full"
+                spotlightColor="rgba(59, 130, 246, 0.15)"
+              >
+                <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Plus className="h-5 w-5 text-primary" />
+                      <span>Create Short URL</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Input
+                        placeholder="Enter your long URL here..."
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        className="flex-1 h-12 text-base"
+                      />
+                      <Button
+                        onClick={handleShorten}
+                        disabled={!url || shortenLoading}
+                        className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600"
+                      >
+                        {shortenLoading ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            Shorten <Plus className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
 
-                {showAdvanced && (
-                  <div className="space-y-3 p-4 bg-muted/40 border rounded-lg">
-                    <Input
-                      placeholder="Custom alias (e.g. promo2025)"
-                      value={customAlias}
-                      onChange={(e) => setCustomAlias(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Name for your dashboard"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Optional password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAdvanced((p) => !p)}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      {showAdvanced ? 'Hide Advanced' : 'Advanced Options'}
+                    </Button>
 
-                {shortUrl && (
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Shortened URL:
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(shortUrl, shortUrl)}
-                        >
-                          {copied == shortUrl ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3 mr-1" />
-                          )}
-                          Copy
-                        </Button>
-                        <a href={shortUrl} target="_blank" rel="noreferrer">
-                          <Button size="sm" variant="outline">
-                            <ExternalLink className="h-3 w-3 mr-1" /> Visit
-                          </Button>
-                        </a>
+                    {showAdvanced && (
+                      <div className="space-y-3 p-4 bg-muted/40 border rounded-lg">
+                        <Input
+                          placeholder="Custom alias (e.g. promo2025)"
+                          value={customAlias}
+                          onChange={(e) => setCustomAlias(e.target.value)}
+                        />
+                        <Input
+                          placeholder="Name for your dashboard"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                        />
+                        <Input
+                          type="password"
+                          placeholder="Optional password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
                       </div>
-                    </div>
-                    <div className="p-3 bg-background rounded border font-mono text-sm break-all">
-                      {shortUrl}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </Spotlight>
-        </motion.div>
+                    )}
+
+                    {shortUrl && (
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Shortened URL:
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyToClipboard(shortUrl, shortUrl)}
+                            >
+                              {copied == shortUrl ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Copy className="h-3 w-3 mr-1" />
+                              )}
+                              Copy
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handlePreview}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" /> Preview
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-background rounded border font-mono text-sm break-all">
+                          {shortUrl}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Spotlight>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="bulk">
+            <BulkShortener />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AdvancedAnalytics />
+          </TabsContent>
+
+          <TabsContent value="domains">
+            <CustomDomainSetup />
+          </TabsContent>
+
+          <TabsContent value="retargeting">
+            <LinkRetargeting />
+          </TabsContent>
+
+          <TabsContent value="expiration">
+            <LinkExpiration onExpirationChange={(date) => console.log('Expiration set:', date)} />
+          </TabsContent>
+
+          <TabsContent value="sharing">
+            <SocialSharing 
+              url={shortUrl || "https://urlsnip.vercel.app"} 
+              title="Check out this amazing link!" 
+            />
+          </TabsContent>
+
+          <TabsContent value="mobile">
+            <MobileAppPromo />
+          </TabsContent>
+        </Tabs>
 
         {/* Recent Links */}
         <motion.div
@@ -286,7 +388,7 @@ export default function DashboardPage() {
                   ) : (
                     sortedUrls.slice(0, 3).map((link) => (
                       <div
-                        key={link.id}
+                        key={link._id}
                         className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30"
                       >
                         <div className="flex-1 min-w-0 space-y-1">
@@ -317,7 +419,7 @@ export default function DashboardPage() {
                             </Button>
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
-                            {link.originalUrl}
+                            {link.fullUrl}
                           </p>
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                             <span>{link.clicks} clicks</span>
@@ -344,6 +446,17 @@ export default function DashboardPage() {
             </Card>
           </Spotlight>
         </motion.div>
+
+        {showPreview && (
+          <LinkPreview 
+            url={previewUrl} 
+            onContinue={() => {
+              window.open(previewUrl, '_blank');
+              setShowPreview(false);
+            }}
+            onCancel={() => setShowPreview(false)}
+          />
+        )}
       </div>
     </>
   );
