@@ -48,9 +48,9 @@ export default function AnalyticsPage() {
   const [is24HourFormat, setIs24HourFormat] = useState(false);
   const { toast } = useToast();
   
-  const { data: urls, isLoading: urlsLoading } = useUrls();
+  const { data, isLoading: urlsLoading } = useUrls();
   const [selectedUrl, setSelectedUrl] = useState(null);
-
+const urls=data.urls
   // Initialize selected URL when URLs load
   useEffect(() => {
     if (urls && urls.length > 0 && !selectedUrl) {
@@ -168,7 +168,6 @@ export default function AnalyticsPage() {
       </div>
     );
   }
-console.log(urls)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="flex flex-col">
