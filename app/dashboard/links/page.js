@@ -22,7 +22,6 @@ import {
   AlertTriangle,
   Clock,
   Shield,
-  Link,
 } from 'lucide-react';
 import { Spotlight } from '../../components/ui/spotlight';
 import { Button } from '../../components/ui/button';
