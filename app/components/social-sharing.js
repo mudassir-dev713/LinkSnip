@@ -12,8 +12,8 @@ import {
   WhatsappIcon,
   EmailIcon,
 } from 'react-share';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Check } from 'lucide-react';
@@ -26,6 +26,22 @@ export function SocialSharing({ url, title = 'Check out this link!' }) {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          url: url,
+        });
+      } catch (error) {
+        console.log('Native share failed:', error);
+      }
+    } else {
+      // Fallback to copying to clipboard
+      copyToClipboard();
+    }
   };
 
   return (
@@ -48,35 +64,53 @@ export function SocialSharing({ url, title = 'Check out this link!' }) {
           </div>
         </div>
 
+        {/* Native Share (Mobile) */}
+        {navigator.share && (
+          <div className="space-y-2">
+            <Label>Quick Share</Label>
+            <Button onClick={handleNativeShare} className="w-full">
+              Share
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-4">
           <Label>Share on Social Media</Label>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <FacebookShareButton url={url} quote={title}>
-                <FacebookIcon size={40} round />
+                <FacebookIcon size={48} round />
               </FacebookShareButton>
               <p className="text-xs mt-1">Facebook</p>
             </div>
             
-            <TwitterShareButton url={url} title={title}>
-              <TwitterIcon size={40} round />
-            </TwitterShareButton>
-            <p className="text-xs mt-1">Twitter</p>
+            <div className="text-center">
+              <TwitterShareButton url={url} title={title}>
+                <TwitterIcon size={48} round />
+              </TwitterShareButton>
+              <p className="text-xs mt-1">Twitter</p>
+            </div>
             
-            <LinkedinShareButton url={url} title={title}>
-              <LinkedinIcon size={40} round />
-            </LinkedinShareButton>
-            <p className="text-xs mt-1">LinkedIn</p>
+            <div className="text-center">
+              <LinkedinShareButton url={url} title={title}>
+                <LinkedinIcon size={48} round />
+              </LinkedinShareButton>
+              <p className="text-xs mt-1">LinkedIn</p>
+            </div>
             
-            <WhatsappShareButton url={url} title={title}>
-              <WhatsappIcon size={40} round />
-            </WhatsappShareButton>
-            <p className="text-xs mt-1">WhatsApp</p>
+            <div className="text-center">
+              <WhatsappShareButton url={url} title={title}>
+                <WhatsappIcon size={48} round />
+              </WhatsappShareButton>
+              <p className="text-xs mt-1">WhatsApp</p>
+            </div>
             
-            <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
-              <EmailIcon size={40} round />
-            </EmailShareButton>
-            <p className="text-xs mt-1">Email</p>
+            <div className="text-center">
+              <EmailShareButton url={url} subject={title} body={`Check out this link: ${url}`}>
+                <EmailIcon size={48} round />
+              </EmailShareButton>
+              <p className="text-xs mt-1">Email</p>
+            </div>
           </div>
         </div>
       </CardContent>

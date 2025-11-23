@@ -1,10 +1,11 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 export function useBulkShorten() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const bulkShorten = useMutation({
     mutationFn: async (urls) => {
@@ -20,6 +21,7 @@ export function useBulkShorten() {
       return res.json();
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries(['urls']);
       toast({
         title: 'Success',
         description: `Processed ${data.results.length} URLs`,

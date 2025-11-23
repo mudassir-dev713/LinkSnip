@@ -134,6 +134,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-8">
+      {/* Mobile App Promo */}
+      <MobileAppPromo />
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -316,7 +319,32 @@ export default function DashboardPage() {
         </TabsContent>
 
         <TabsContent value="mobile">
-          <MobileAppPromo />
+          <Card>
+            <CardHeader>
+              <CardTitle>Mobile App Features</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                Download our mobile app for on-the-go link management with push notifications, QR scanning, and offline access.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  className="bg-black text-white hover:bg-gray-800"
+                  onClick={() => window.open('https://apps.apple.com', '_blank')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  App Store
+                </Button>
+                <Button 
+                  className="bg-green-600 text-white hover:bg-green-700"
+                  onClick={() => window.open('https://play.google.com', '_blank')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Google Play
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="qr">
@@ -329,12 +357,8 @@ export default function DashboardPage() {
                 Generate QR codes for your shortened URLs. This feature allows you to create 
                 scannable QR codes that link to your URLs.
               </p>
-
               <div className="space-y-2">
-              {
-
-                //<Label>Short URL</Label>
-              }
+                <Label>Short URL</Label>
                 <Input
                   placeholder="Enter your short URL"
                   value={shortUrl}
@@ -381,18 +405,28 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {urlsLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading...</p>
+                  <div className="flex items-center justify-center h-16">
+                    <span className="text-muted-foreground">Loading links...</span>
+                  </div>
                 ) : isError ? (
-                  <p className="text-sm text-red-500">Failed to fetch URLs</p>
+                  <div className="text-center py-8">
+                    <p className="text-destructive">Failed to fetch URLs</p>
+                    <Button onClick={() => refetch()} variant="outline" className="mt-4">
+                      Try Again
+                    </Button>
+                  </div>
                 ) : urls.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center">
-                    No links yet
-                  </p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No links yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Create your first short URL to get started
+                    </p>
+                  </div>
                 ) : (
-                  urls.slice(0, 3).map((link) => (
+                  urls.slice(0, 5).map((link) => (
                     <div
                       key={link._id}
-                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30"
+                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center space-x-2">
@@ -429,18 +463,35 @@ export default function DashboardPage() {
                           <span>
                             {new Date(link.createdAt).toLocaleDateString()}
                           </span>
-                          <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-full">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            link.status === 'active'
+                              ? 'bg-green-500/10 text-green-500'
+                              : 'bg-yellow-500/10 text-yellow-500'
+                          }`}>
                             {link.status}
                           </span>
+                          {link.expiresAt && (
+                            <span className="px-2 py-1 bg-red-500/10 text-red-500 text-xs rounded-full">
+                              Expires
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        className="md:flex hidden"
-                        size="sm"
-                        variant="outline"
-                      >
-                        <BarChart3 className="h-3 w-3 mr-1" /> Analytics
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="hidden md:flex"
+                        >
+                          <BarChart3 className="h-3 w-3 mr-1" /> Analytics
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}

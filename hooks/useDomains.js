@@ -82,6 +82,35 @@ export function useDomains() {
     },
   });
 
+  const deleteDomain = useMutation({
+    mutationFn: async (domainId) => {
+      const res = await fetch('/api/domains', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete domain');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['domains']);
+      toast({
+        title: 'Success',
+        description: 'Domain deleted successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   return {
     domains: data?.domains || [],
     isLoading,
@@ -89,5 +118,6 @@ export function useDomains() {
     refetch,
     addDomain,
     verifyDomain,
+    deleteDomain,
   };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion } from 'framer-animation';
 import { useState, useEffect } from 'react';
 import {
   TrendingUp,
@@ -38,7 +38,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { LineChart } from '@/components/ui/line-chart';
 import { useUrls } from '@/hooks/use-urls';
-import { useAnalytics } from '@/hooks/useAnalytics';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 // Icon mappings
 const deviceIcons = { Smartphone, Monitor, Tablet, HelpCircle };
