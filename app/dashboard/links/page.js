@@ -57,7 +57,7 @@ export default function MyLinksPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLinks, setSelectedLinks] = useState([]);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(null);
   const [copied, setCopied] = useState(null);
   const { toast } = useToast();
 
@@ -680,7 +680,7 @@ export default function MyLinksPage() {
                                 <p className="text-sm text-muted-foreground truncate flex gap-8 items-center">
                                   <div>
                                     Password: &nbsp;
-                                    {showPassword
+                                    {showPassword === link._id
                                       ? link?.password
                                       : link?.password
                                           ?.split('')
@@ -689,14 +689,22 @@ export default function MyLinksPage() {
                                           ))}
                                   </div>
                                   <span
-                                    onClick={() =>
-                                      setShowPassword(!showPassword)
-                                    }
+                                  // onClick={() =>
+                                  //   setShowPassword(!showPassword)
+                                  // }
                                   >
-                                    {showPassword ? (
-                                      <EyeOff className="h-4 w-4" />
+                                    {showPassword === link._id ? (
+                                      <EyeOff
+                                        className="h-4 w-4"
+                                        onClick={() => setShowPassword(null)}
+                                      />
                                     ) : (
-                                      <Eye className="h-4 w-4" />
+                                      <Eye
+                                        className="h-4 w-4"
+                                        onClick={() =>
+                                          setShowPassword(link._id)
+                                        }
+                                      />
                                     )}
                                   </span>
                                 </p>
@@ -718,15 +726,18 @@ export default function MyLinksPage() {
 
                         <div className="flex items-center gap-2">
                           <div className="md:block hidden">
-                            <Link href={`/dashboard/analytics/${link._id}`}>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="justify-start"
-                              >
-                                <BarChart3 className="h-3 w-3 mr-2" /> Analytics
-                              </Button>
-                            </Link>
+                            {editingLinkId === link._id ? null : (
+                              <Link href={`/dashboard/analytics/${link._id}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="justify-start"
+                                >
+                                  <BarChart3 className="h-3 w-3 mr-2" />{' '}
+                                  Analytics
+                                </Button>
+                              </Link>
+                            )}
                             {editingLinkId === link._id ? (
                               <>
                                 <Button
@@ -782,40 +793,44 @@ export default function MyLinksPage() {
                                 <Edit className="h-3 w-3 mr-2" /> Edit
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                updateStatus({
-                                  id: link._id,
-                                  newStatus:
-                                    link.status === 'active'
-                                      ? 'inactive'
-                                      : 'active',
-                                })
-                              }
-                              disabled={isUpdating}
-                              className="justify-start"
-                            >
-                              {link.status === 'active' ? (
-                                <>
-                                  <EyeOff className="h-3 w-3 mr-2" /> Pause
-                                </>
-                              ) : (
-                                <>
-                                  <Eye className="h-3 w-3 mr-2" /> Activate
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => deleteLink(link._id)}
-                              className="text-destructive justify-start"
-                              disabled={isDeleting}
-                            >
-                              <Trash2 className="h-3 w-3 mr-2" /> Delete
-                            </Button>
+                            {editingLinkId === link._id ? null : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  updateStatus({
+                                    id: link._id,
+                                    newStatus:
+                                      link.status === 'active'
+                                        ? 'inactive'
+                                        : 'active',
+                                  })
+                                }
+                                disabled={isUpdating}
+                                className="justify-start"
+                              >
+                                {link.status === 'active' ? (
+                                  <>
+                                    <EyeOff className="h-3 w-3 mr-2" /> Pause
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="h-3 w-3 mr-2" /> Activate
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                            {editingLinkId === link._id ? null : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => deleteLink(link._id)}
+                                className="text-destructive justify-start"
+                                disabled={isDeleting}
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" /> Delete
+                              </Button>
+                            )}
                           </div>
                           <div className="relative menu-container md:hidden block">
                             <button

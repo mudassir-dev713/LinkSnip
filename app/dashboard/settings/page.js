@@ -1,66 +1,73 @@
-"use client";
+'use client';
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Bell, 
-  Shield, 
-  Globe, 
+import {
+  User,
+  Mail,
+  Lock,
+  Bell,
+  Shield,
+  Globe,
   Palette,
   Download,
   Trash2,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
 } from 'lucide-react';
 import { Spotlight } from '../../components/ui/spotlight';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card';
 import { Switch } from '../../components/ui/switch';
+import { useSession } from 'next-auth/react';
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+
   const [profile, setProfile] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
+    firstName: session?.user?.username || '',
+    email: session?.user?.email || '',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     clickAlerts: false,
     weeklyReports: true,
-    securityAlerts: true
+    securityAlerts: true,
   });
 
   const [privacy, setPrivacy] = useState({
     publicProfile: false,
     analyticsSharing: true,
-    dataCollection: false
+    dataCollection: false,
   });
 
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   });
 
   const handleProfileChange = (field, value) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+    setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleNotificationChange = (field, value) => {
-    setNotifications(prev => ({ ...prev, [field]: value }));
+    setNotifications((prev) => ({ ...prev, [field]: value }));
   };
 
   const handlePrivacyChange = (field, value) => {
-    setPrivacy(prev => ({ ...prev, [field]: value }));
+    setPrivacy((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveProfile = () => {
@@ -94,7 +101,9 @@ export default function SettingsPage() {
       >
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+          <p className="text-muted-foreground">
+            Manage your account settings and preferences
+          </p>
         </div>
       </motion.div>
 
@@ -106,7 +115,10 @@ export default function SettingsPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="space-y-6"
         >
-          <Spotlight className="w-full" spotlightColor="rgba(59, 130, 246, 0.15)">
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(59, 130, 246, 0.15)"
+          >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -120,15 +132,9 @@ export default function SettingsPage() {
                     <label className="text-sm font-medium">First Name</label>
                     <Input
                       value={profile.firstName}
-                      onChange={(e) => handleProfileChange('firstName', e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Last Name</label>
-                    <Input
-                      value={profile.lastName}
-                      onChange={(e) => handleProfileChange('lastName', e.target.value)}
+                      onChange={(e) =>
+                        handleProfileChange('firstName', e.target.value)
+                      }
                       className="h-11"
                     />
                   </div>
@@ -138,11 +144,14 @@ export default function SettingsPage() {
                   <Input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => handleProfileChange('email', e.target.value)}
+                    disabled={true}
                     className="h-11"
                   />
                 </div>
-                <Button onClick={handleSaveProfile} className="w-full bg-gradient-to-r from-primary to-blue-600">
+                <Button
+                  onClick={handleSaveProfile}
+                  className="w-full bg-gradient-to-r from-primary to-blue-600"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Save Profile
                 </Button>
@@ -151,7 +160,10 @@ export default function SettingsPage() {
           </Spotlight>
 
           {/* Password Change */}
-          <Spotlight className="w-full" spotlightColor="rgba(139, 92, 246, 0.15)">
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(139, 92, 246, 0.15)"
+          >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -161,20 +173,33 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Current Password</label>
+                  <label className="text-sm font-medium">
+                    Current Password
+                  </label>
                   <div className="relative">
                     <Input
-                      type={showPasswords.current ? "text" : "password"}
+                      type={showPasswords.current ? 'text' : 'password'}
                       value={profile.currentPassword}
-                      onChange={(e) => handleProfileChange('currentPassword', e.target.value)}
+                      onChange={(e) =>
+                        handleProfileChange('currentPassword', e.target.value)
+                      }
                       className="h-11 pr-10"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                      onClick={() =>
+                        setShowPasswords((prev) => ({
+                          ...prev,
+                          current: !prev.current,
+                        }))
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPasswords.current ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -182,39 +207,66 @@ export default function SettingsPage() {
                   <label className="text-sm font-medium">New Password</label>
                   <div className="relative">
                     <Input
-                      type={showPasswords.new ? "text" : "password"}
+                      type={showPasswords.new ? 'text' : 'password'}
                       value={profile.newPassword}
-                      onChange={(e) => handleProfileChange('newPassword', e.target.value)}
+                      onChange={(e) =>
+                        handleProfileChange('newPassword', e.target.value)
+                      }
                       className="h-11 pr-10"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                      onClick={() =>
+                        setShowPasswords((prev) => ({
+                          ...prev,
+                          new: !prev.new,
+                        }))
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPasswords.new ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Confirm New Password</label>
+                  <label className="text-sm font-medium">
+                    Confirm New Password
+                  </label>
                   <div className="relative">
                     <Input
-                      type={showPasswords.confirm ? "text" : "password"}
+                      type={showPasswords.confirm ? 'text' : 'password'}
                       value={profile.confirmPassword}
-                      onChange={(e) => handleProfileChange('confirmPassword', e.target.value)}
+                      onChange={(e) =>
+                        handleProfileChange('confirmPassword', e.target.value)
+                      }
                       className="h-11 pr-10"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                      onClick={() =>
+                        setShowPasswords((prev) => ({
+                          ...prev,
+                          confirm: !prev.confirm,
+                        }))
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPasswords.confirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
-                <Button onClick={handlePasswordChange} className="w-full bg-gradient-to-r from-purple-600 to-pink-600">
+                <Button
+                  onClick={handlePasswordChange}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
+                >
                   <Lock className="h-4 w-4 mr-2" />
                   Update Password
                 </Button>
@@ -231,7 +283,10 @@ export default function SettingsPage() {
           className="space-y-6"
         >
           {/* Notifications */}
-          <Spotlight className="w-full" spotlightColor="rgba(34, 197, 94, 0.15)">
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(34, 197, 94, 0.15)"
+          >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -241,19 +296,42 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive updates via email' },
-                  { key: 'clickAlerts', label: 'Click Alerts', description: 'Get notified when links are clicked' },
-                  { key: 'weeklyReports', label: 'Weekly Reports', description: 'Receive weekly analytics reports' },
-                  { key: 'securityAlerts', label: 'Security Alerts', description: 'Important security notifications' }
+                  {
+                    key: 'emailNotifications',
+                    label: 'Email Notifications',
+                    description: 'Receive updates via email',
+                  },
+                  {
+                    key: 'clickAlerts',
+                    label: 'Click Alerts',
+                    description: 'Get notified when links are clicked',
+                  },
+                  {
+                    key: 'weeklyReports',
+                    label: 'Weekly Reports',
+                    description: 'Receive weekly analytics reports',
+                  },
+                  {
+                    key: 'securityAlerts',
+                    label: 'Security Alerts',
+                    description: 'Important security notifications',
+                  },
                 ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+                  <div
+                    key={item.key}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border/50"
+                  >
                     <div>
                       <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
                     </div>
                     <Switch
                       checked={notifications[item.key]}
-                      onCheckedChange={(checked) => handleNotificationChange(item.key, checked)}
+                      onCheckedChange={(checked) =>
+                        handleNotificationChange(item.key, checked)
+                      }
                     />
                   </div>
                 ))}
@@ -262,7 +340,10 @@ export default function SettingsPage() {
           </Spotlight>
 
           {/* Privacy Settings */}
-          <Spotlight className="w-full" spotlightColor="rgba(168, 85, 247, 0.15)">
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(168, 85, 247, 0.15)"
+          >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -272,18 +353,37 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { key: 'publicProfile', label: 'Public Profile', description: 'Make your profile visible to others' },
-                  { key: 'analyticsSharing', label: 'Analytics Sharing', description: 'Share anonymous analytics data' },
-                  { key: 'dataCollection', label: 'Data Collection', description: 'Allow additional data collection' }
+                  {
+                    key: 'publicProfile',
+                    label: 'Public Profile',
+                    description: 'Make your profile visible to others',
+                  },
+                  {
+                    key: 'analyticsSharing',
+                    label: 'Analytics Sharing',
+                    description: 'Share anonymous analytics data',
+                  },
+                  {
+                    key: 'dataCollection',
+                    label: 'Data Collection',
+                    description: 'Allow additional data collection',
+                  },
                 ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+                  <div
+                    key={item.key}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border/50"
+                  >
                     <div>
                       <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
                     </div>
                     <Switch
                       checked={privacy[item.key]}
-                      onCheckedChange={(checked) => handlePrivacyChange(item.key, checked)}
+                      onCheckedChange={(checked) =>
+                        handlePrivacyChange(item.key, checked)
+                      }
                     />
                   </div>
                 ))}
@@ -292,7 +392,10 @@ export default function SettingsPage() {
           </Spotlight>
 
           {/* Data Management */}
-          <Spotlight className="w-full" spotlightColor="rgba(239, 68, 68, 0.15)">
+          <Spotlight
+            className="w-full"
+            spotlightColor="rgba(239, 68, 68, 0.15)"
+          >
             <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -302,17 +405,17 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <Button 
+                  <Button
                     onClick={handleExportData}
-                    variant="outline" 
+                    variant="outline"
                     className="w-full justify-start"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Export My Data
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleDeleteAccount}
-                    variant="outline" 
+                    variant="outline"
                     className="w-full justify-start text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -320,7 +423,8 @@ export default function SettingsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Deleting your account will permanently remove all your data and cannot be undone.
+                  Deleting your account will permanently remove all your data
+                  and cannot be undone.
                 </p>
               </CardContent>
             </Card>

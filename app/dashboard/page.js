@@ -280,7 +280,7 @@ export default function DashboardPage() {
                   ) : isError ? (
                     <p className="text-sm text-red-500">Failed to fetch URLs</p>
                   ) : sortedUrls.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground text-center">
                       No links yet
                     </p>
                   ) : (
