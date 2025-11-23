@@ -15,6 +15,7 @@ const poppins = Poppins({
   weight: ['600', '700'],
   variable: '--font-poppins',
 });
+
 export const metadata = {
   metadataBase: new URL('https://urlsnip.vercel.app'),
   title: {
@@ -38,7 +39,7 @@ export const metadata = {
     siteName: 'LinkSnip',
     images: [
       {
-        url: 'https://urlsnip.vercel.app/og-image.jpg', // Add your OG image
+        url: 'https://urlsnip.vercel.app/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'LinkSnip - Modern URL Shortener',
@@ -50,10 +51,25 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'LinkSnip',
     description: 'Shorten, track, and manage your URLs with style.',
-    creator: '@yourhandle', // Replace or remove
+    creator: '@yourhandle',
     images: ['https://urlsnip.vercel.app/og-image.png'],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
+  },
 };
+
 export default async function RootLayout({ children }) {
   const session = await getServerSession();
   return (
@@ -63,7 +79,6 @@ export default async function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="LinkSnip" />
         <meta name="description" content="LinkSnip - Modern URL Shortener" />
         {/* Android  & Ios Support */}
-
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
@@ -115,21 +130,26 @@ export default async function RootLayout({ children }) {
           content="Shorten, track, and manage your URLs with style."
         />
         <meta name="twitter:image" content="/og-image.png" />
+        
+        {/* Structured Data */}
         <script type="application/ld+json">
-          {`
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "LinkSnip",
-  "url": "https://urlsnip.vercel.app",
-  "screenshot": [
-    "https://urlsnip.vercel.app/screenshots/homepage.png",
-    "https://urlsnip.vercel.app/screenshots/dashboard.png"
-  ]
-}
-`}
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "LinkSnip",
+            "url": "https://urlsnip.vercel.app",
+            "description": "Modern URL shortener with analytics",
+            "applicationCategory": "Utilities",
+            "operatingSystem": "All",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          })}
         </script>
 
+        {/* Theme Script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -147,7 +167,7 @@ export default async function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={` ${poppins.variable} ${inter.className}`}>
+      <body className={`${poppins.variable} ${inter.className}`}>
         <QueryProvider>
           <Provider session={session}>
             <ThemeProvider

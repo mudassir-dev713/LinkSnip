@@ -9,6 +9,7 @@ export function ThemeProvider({ children, ...props }) {
       attribute="class"
       defaultTheme="dark"
       enableSystem
+      storageKey="vite-ui-theme"
       {...props}
     >
       {children}
