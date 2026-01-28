@@ -1,76 +1,76 @@
 'use client';
 
-import React from 'react';
-import { MoonIcon, SunIcon } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
+import { flushSync } from 'react-dom';
 
-import { Button } from '@/components/ui/button';
-import { createAnimation } from '@/theme/theme-animations';
+import { cn } from '@/lib/utils';
 
-export function ThemeToggle({
-  variant = 'circle-blur',
-  start = 'top-left',
-  showLabel = false,
-  url = '',
-}) {
-  const { theme, setTheme } = useTheme();
+export const ThemeToggle = ({ className, duration = 400, ...props }) => {
+  const [isDark, setIsDark] = useState(false);
+  const buttonRef = useRef(null);
 
-  const styleId = 'theme-transition-styles';
-
-  const updateStyles = React.useCallback((css, name) => {
-    if (typeof window === 'undefined') return;
-
-    let styleElement = document.getElementById(styleId);
-
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = styleId;
-      document.head.appendChild(styleElement);
-    }
-
-    styleElement.textContent = css;
-  }, []);
-
-  const toggleTheme = React.useCallback(() => {
-    const animation = createAnimation(variant, start, url);
-
-    updateStyles(animation.css, animation.name);
-
-    const switchTheme = () => {
-      const newTheme = theme === 'light' ? 'dark' : 'light';
-      setTheme(newTheme);
+  useEffect(() => {
+    const updateTheme = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
     };
 
-    if (!document.startViewTransition) {
-      switchTheme();
-      return;
-    }
-    document.startViewTransition(switchTheme);
-  }, [theme, setTheme]);
+    updateTheme();
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleTheme = useCallback(async () => {
+    if (!buttonRef.current) return;
+
+    await document.startViewTransition(() => {
+      flushSync(() => {
+        const newTheme = !isDark;
+        setIsDark(newTheme);
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+      });
+    }).ready;
+
+    const { top, left, width, height } =
+      buttonRef.current.getBoundingClientRect();
+    const x = left + width / 2;
+    const y = top + height / 2;
+    const maxRadius = Math.hypot(
+      Math.max(left, window.innerWidth - left),
+      Math.max(top, window.innerHeight - top),
+    );
+
+    document.documentElement.animate(
+      {
+        clipPath: [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+        ],
+      },
+      {
+        duration,
+        easing: 'ease-in-out',
+        pseudoElement: '::view-transition-new(root)',
+      },
+    );
+  }, [isDark, duration]);
 
   return (
-    <Button
+    <button
+      ref={buttonRef}
       onClick={toggleTheme}
-      variant="ghost"
-      size="icon"
-      className="w-3 p-0 h-3 relative group"
-      name="Theme Toggle Button"
+      className={cn(className)}
+      {...props}
     >
-      <SunIcon className="size-[.4rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <MoonIcon className="absolute size-[.4rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 " />
-      <span className="sr-only">Theme Toggle </span>
-      {showLabel && (
-        <>
-          <span className="hidden group-hover:block border rounded-full px-2 absolute -top-10">
-            {' '}
-            variant = {variant}
-          </span>
-          <span className="hidden group-hover:block border rounded-full px-2 absolute -bottom-10">
-            {' '}
-            start = {start}
-          </span>
-        </>
-      )}
-    </Button>
+      {isDark ? <Sun /> : <Moon />}
+      <span className="sr-only">Toggle theme</span>
+    </button>
   );
-}
+};
