@@ -5,11 +5,15 @@ const UserSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
+      unique: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -27,11 +31,11 @@ const UserSchema = new mongoose.Schema(
     },
     resetPasswordToken: {
       type: String,
-      default: Date.now,
+      default: null,
     },
     resetPasswordExpires: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
     plan: {
       type: String,
