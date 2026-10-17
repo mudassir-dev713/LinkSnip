@@ -6,9 +6,13 @@ import User from '@/models/User';
 import { dbConnect } from '@/lib/dbConnect';
 import { sendVerificationEmail } from '@/lib/email/sendVerificationEmail';
 import { signupSchema } from '@/schema/SignUpSchema';
+import { checkRateLimit, getClientIp, rateLimitedResponse } from '@/lib/rateLimit';
 
 export async function POST(request) {
   try {
+    const rl = await checkRateLimit({ identity: `ip:${getClientIp(request)}`, key: 'signup', limit: 10, windowMs: 15 * 60 * 1000 });
+    if (!rl.allowed) return rateLimitedResponse(rl.resetAt);
+
     const body = await request.json();
     //  Validate request body using Zod
     const parsed = signupSchema.safeParse(body);
@@ -20,12 +24,26 @@ export async function POST(request) {
       );
     }
     const { username, email, password } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Connect to MongoDB
     await dbConnect();
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const [existingUser, existingUsername] = await Promise.all([
+      User.findOne({ email: normalizedEmail }),
+      User.findOne({ username }),
+    ]);
+
+    if (existingUsername) {
+      return NextResponse.json(
+        {
+          message: 'Validation failed',
+          errors: { username: { _errors: ['Username is already taken.'] } },
+        },
+        { status: 409 }
+      );
+    }
 
     if (existingUser) {
       if (existingUser.isVerified) {
@@ -41,7 +59,7 @@ export async function POST(request) {
       existingUser.verificationTokenExpires = Date.now() + 1000 * 60 * 60 * 24;
       await existingUser.save();
 
-      await sendVerificationEmail(email, token);
+      await sendVerificationEmail(normalizedEmail, token);
       return NextResponse.json(
         {
           message:
@@ -61,7 +79,7 @@ export async function POST(request) {
     //  Create new user
     const newUser = new User({
       username,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       isVerified: false,
       verificationToken: token,
@@ -73,7 +91,7 @@ export async function POST(request) {
     await newUser.save();
 
     //  Send verification email
-    await sendVerificationEmail(email, token);
+    await sendVerificationEmail(normalizedEmail, token);
 
     return NextResponse.json(
       {
