@@ -2,14 +2,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
 
+/**
+ * Shared URL-shortening mutation.
+ *
+ * Accepts optional per-call callbacks so pages can react (show result card,
+ * reset form) without each page reimplementing fetch/error handling:
+ *   const m = useShortenUrl();
+ *   m.mutate(payload, { onSuccess, onError });
+ */
 export function useShortenUrl() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data) => {
-      // Validate input data
-      if (!data.url) {
+      if (!data?.url) {
         throw new Error('URL is required');
       }
 
@@ -19,32 +26,20 @@ export function useShortenUrl() {
         formattedUrl = 'https://' + formattedUrl;
       }
 
-      try {
-        const res = await fetch('/api/shorten', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...data,
-            url: formattedUrl,
-          }),
-        });
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          url: formattedUrl,
+        }),
+      });
 
-        const json = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(json.error || 'Failed to shorten URL');
-        }
-
-        return json;
-      } catch (error) {
-        if (error.message.includes('Custom alias already exists')) {
-          throw new Error('Custom alias already exists. Please choose another one.');
-        }
-        if (error.message.includes('must be logged in')) {
-          throw new Error('You must be logged in to use custom alias or password.');
-        }
-        throw error;
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to shorten URL');
       }
+      return json;
     },
     onSuccess: (urlData) => {
       // Optimistically update cache
@@ -54,21 +49,21 @@ export function useShortenUrl() {
       });
 
       // Background refetch to ensure data consistency
-      queryClient.invalidateQueries(['urls'], { 
+      queryClient.invalidateQueries(['urls'], {
         refetchType: 'inactive',
-        staleTime: 0 
+        staleTime: 0,
       });
 
       toast({
         title: 'Success!',
-        description: 'Your short URL has been created successfully',
+        description: 'Your short URL has been created',
       });
     },
     onError: (error) => {
       console.error('Shorten URL error:', error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to create short URL',
+        title: 'Couldn’t shorten that URL',
+        description: error.message || 'Please check the URL and try again.',
         variant: 'destructive',
       });
     },

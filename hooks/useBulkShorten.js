@@ -1,12 +1,12 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
 
 export function useBulkShorten() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Toasts are owned by the BulkShortener component (it has richer context
+  // about totals / truncation), so this hook only fetches + invalidates.
   const bulkShorten = useMutation({
     mutationFn: async (urls) => {
       const res = await fetch('/api/bulk-shorten', {
@@ -20,21 +20,11 @@ export function useBulkShorten() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries(['urls']);
-      toast({
-        title: 'Success',
-        description: `Processed ${data.results.length} URLs`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['urls'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 
-  return { bulkShorten };
+  return { bulkShorten, isLoading: bulkShorten.isPending };
 }
