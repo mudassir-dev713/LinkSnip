@@ -14,6 +14,7 @@ import {
   History,
   User,
   QrCode,
+  Images,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -45,7 +46,7 @@ const sidebarItems = [
   {
     name: 'My QR Codes',
     href: '/my-qrcodes',
-    icon: QrCode,
+    icon: Images,
   },
   {
     name: 'Settings',
@@ -60,42 +61,56 @@ export function Sidebar() {
   const { data: session } = useSession();
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-1 z-50 md:hidden bg-black px-2 py-1 rounded-sm shadow-md"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </Button>
+      {/* Mobile top bar — in flow, so it never overlaps page content */}
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border/40 bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={isOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <Link2 className="h-4 w-4 text-primary" />
+          </span>
+          <span className="font-display text-base font-bold tracking-tight">
+            LinkSnip
+          </span>
+        </Link>
+      </header>
 
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <motion.aside
         className={`
-          fixed left-0 top-0 z-50 h-screen w-72 bg-card/95 backdrop-blur-sm border-r border-border transition-transform duration-300 ease-in-out
+          fixed left-0 top-0 z-50 h-screen w-72 border-r border-border bg-card/95 backdrop-blur transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-           md:translate-x-0 md:bg-card/60 md:block
+           md:translate-x-0 md:bg-card/60
         `}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="p-6 border-b border-border">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Link2 className="h-6 w-6 text-primary" />
+          <div className="border-b border-border p-6">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Link2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">LinkSnip</h1>
-                <p className="text-xs text-muted-foreground">URL Shortener</p>
+                <h1 className="font-display text-xl font-bold tracking-tight">
+                  LinkSnip
+                </h1>
+                <p className="text-xs text-muted-foreground">Link analytics</p>
               </div>
             </Link>
           </div>
@@ -103,15 +118,15 @@ export function Sidebar() {
           {/* Quick Action */}
           <div className="p-4">
             <Link href="/dashboard/">
-              <Button className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button className="w-full shadow-lg shadow-primary/15">
+                <Plus className="mr-2 h-4 w-4" />
                 Shorten URL
               </Button>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 space-y-2">
+          <nav className="flex-1 space-y-1 px-4" aria-label="Dashboard">
             {sidebarItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -122,12 +137,13 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`
-                    flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                    flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-primary/10 text-primary border border-primary/20'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        ? 'border-primary/20 bg-primary/10 text-primary'
+                        : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     }
                   `}
                 >
@@ -139,21 +155,21 @@ export function Sidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border space-y-4">
+          <div className="space-y-4 border-t border-border p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Theme</span>
               <ThemeToggle variant="circle" start="top-left" />
             </div>
 
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                 <User className="h-4 w-4 text-primary" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
                   {session?.user?.username || 'Guest User'}
                 </p>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="truncate text-xs text-muted-foreground">
                   {session?.user?.email || 'Not signed in'}
                 </p>
               </div>
@@ -162,12 +178,9 @@ export function Sidebar() {
             <Button
               variant="ghost"
               className="w-full justify-start text-muted-foreground hover:text-destructive"
-              onClick={() => {
-                signOut({ callbackUrl: '/' });
-                window.location.href = '/';
-              }}
+              onClick={() => signOut({ callbackUrl: '/' })}
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
           </div>

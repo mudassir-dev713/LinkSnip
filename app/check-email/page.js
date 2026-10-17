@@ -2,10 +2,12 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader } from '@/app/components/ui/Loader';
 
 function CheckEmailContent() {
-  const [isVerified, setIsVerified] = useState(false);
   const [pollingStopped, setPollingStopped] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,7 +33,6 @@ function CheckEmailContent() {
         const data = await res.json();
         if (data.verified) {
           clearInterval(interval);
-          setIsVerified(true);
           router.push('/login');
         }
       } catch (err) {
@@ -42,46 +43,54 @@ function CheckEmailContent() {
     return () => clearInterval(interval);
   }, [email, router]);
 
-  const handleLoginClick = () => router.push('/login');
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-black text-white">
-      <div className="bg-gray-900 p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
-        <h1 className="text-2xl font-semibold text-green-400 mb-2">
-          Verify Your Email
-        </h1>
-        <p className="text-gray-300 mb-4">
-          We’ve sent a verification link to{' '}
-          <strong>{email || 'your email'}</strong>.
-        </p>
-        {pollingStopped ? (
-          <p className="text-yellow-400 mb-6">
-            Link not clicked within 1 minute. Please verify and click the button
-            below.
+    <div className="hero-glow flex min-h-dvh items-center justify-center p-4">
+      <Card className="w-full max-w-md border shadow-xl shadow-primary/5">
+        <CardHeader className="space-y-3 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Mail className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="font-display text-2xl font-bold tracking-tight">
+            Check your email
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5 pb-8 text-center">
+          <p className="text-pretty text-sm text-muted-foreground">
+            We sent a verification link to{' '}
+            <span className="font-medium text-foreground">
+              {email || 'your email'}
+            </span>
+            . Click it to activate your account.
           </p>
-        ) : (
-          <p className="text-gray-400 mb-6">
-            Waiting for verification... you’ll be redirected once verified.
-          </p>
-        )}
-        <Button
-          onClick={handleLoginClick}
-          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-xl"
-        >
-          Go to Login
-        </Button>
-      </div>
+
+          {pollingStopped ? (
+            <div className="rounded-lg border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
+              We didn&apos;t detect a verification yet. Check your inbox and
+              spam folder, then continue.
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              Waiting for verification — you&apos;ll be redirected automatically.
+            </div>
+          )}
+
+          <Button
+            onClick={() => router.push('/login')}
+            variant="outline"
+            className="w-full"
+          >
+            Go to sign in
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 export default function CheckEmailPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      }
-    >
+    <Suspense fallback={<Loader className="min-h-dvh" />}>
       <CheckEmailContent />
     </Suspense>
   );

@@ -28,11 +28,9 @@ export const metadata = {
 
 export default function DashboardLayout({ children }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex overflow-x-hidden">
-      <div className=" md:block w-0 md:w-72">
-        <Sidebar />
-      </div>
-      <main className="flex-1 min-w-0 mt-10 max-w-screen overflow-x-hidden">
+    <div className="min-h-dvh bg-background">
+      <Sidebar />
+      <main id="main-content" className="min-w-0 md:pl-72">
         {children}
       </main>
     </div>

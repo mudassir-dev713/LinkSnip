@@ -1,57 +1,46 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User,
-  Mail,
   Lock,
-  Bell,
-  Shield,
-  Globe,
-  Palette,
+  Database,
   Download,
   Trash2,
   Save,
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { Spotlight } from '../../components/ui/spotlight';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '../../components/ui/card';
-import { Switch } from '../../components/ui/switch';
-import { useSession } from 'next-auth/react';
-import { SubscriptionPlans } from '@/app/components/subscription-plans';
+import { useSession, signOut } from 'next-auth/react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+  const { toast } = useToast();
 
   const [profile, setProfile] = useState({
-    firstName: session?.user?.username || '',
-    email: session?.user?.email || '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    username: '',
+    email: '',
   });
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    clickAlerts: false,
-    weeklyReports: true,
-    securityAlerts: true,
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: '',
   });
-
-  const [privacy, setPrivacy] = useState({
-    publicProfile: false,
-    analyticsSharing: true,
-    dataCollection: false,
-  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [showPasswords, setShowPasswords] = useState({
     current: false,
@@ -59,285 +48,359 @@ export default function SettingsPage() {
     confirm: false,
   });
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Seed the form from the session once it arrives (until the user edits).
+  useEffect(() => {
+    if (session?.user && !profileDirty) {
+      setProfile({
+        username: session.user.username || '',
+        email: session.user.email || '',
+      });
+    }
+  }, [session, profileDirty]);
+
   const handleProfileChange = (field, value) => {
+    setProfileDirty(true);
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleNotificationChange = (field, value) => {
-    setNotifications((prev) => ({ ...prev, [field]: value }));
+  const handlePasswordChange = (field, value) => {
+    setPasswords((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePrivacyChange = (field, value) => {
-    setPrivacy((prev) => ({ ...prev, [field]: value }));
+  const handleSaveProfile = async () => {
+    if (profile.username.trim().length < 3) {
+      toast({
+        title: 'Username too short',
+        description: 'Username must be at least 3 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: profile.username.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save profile');
+
+      setProfile((prev) => ({ ...prev, username: data.username }));
+      setProfileDirty(false);
+      await update?.({ user: { username: data.username } });
+      toast({ title: 'Profile saved', description: 'Your username has been updated.' });
+    } catch (err) {
+      toast({
+        title: 'Could not save profile',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
-  const handleSaveProfile = () => {
-    // Handle profile save
-    console.log('Saving profile:', profile);
-  };
+  const handleChangePassword = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'New password and confirmation must match.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (passwords.new.length < 8) {
+      toast({
+        title: 'Password too short',
+        description: 'New password must be at least 8 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.new,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to change password');
 
-  const handlePasswordChange = () => {
-    // Handle password change
-    console.log('Changing password');
+      setPasswords({ current: '', new: '', confirm: '' });
+      toast({ title: 'Password updated', description: 'Use your new password next time you sign in.' });
+    } catch (err) {
+      toast({
+        title: 'Could not change password',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleExportData = () => {
-    // Handle data export
-    console.log('Exporting data');
+    // Download the caller's links as CSV.
+    window.location.href = '/api/export/links';
   };
 
-  const handleDeleteAccount = () => {
-    // Handle account deletion
-    console.log('Deleting account');
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast({
+        title: 'Password required',
+        description: 'Enter your password to confirm account deletion.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+
+      toast({ title: 'Account deleted', description: 'Your account and data have been removed.' });
+      await signOut({ callbackUrl: '/' });
+    } catch (err) {
+      toast({
+        title: 'Could not delete account',
+        description: err.message,
+        variant: 'destructive',
+      });
+      setDeleting(false);
+      setDeletePassword('');
+    }
   };
+
+  const passwordField = (id, label, field) => (
+    <div className="space-y-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={showPasswords[field] ? 'text' : 'password'}
+          value={passwords[field]}
+          onChange={(e) => handlePasswordChange(field, e.target.value)}
+          className="h-11 pr-10"
+        />
+        <button
+          type="button"
+          aria-label={showPasswords[field] ? 'Hide password' : 'Show password'}
+          onClick={() =>
+            setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }))
+          }
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          {showPasswords[field] ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
+    <div className="p-5 md:p-10 space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="space-y-4"
+        transition={{ duration: 0.5 }}
       >
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account settings and preferences
-          </p>
-        </div>
+        <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
+          Settings
+        </h1>
+        <p className="text-muted-foreground">
+          Manage your account settings
+        </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Profile Settings */}
+      <div className="max-w-2xl space-y-6">
+        {/* Profile */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="space-y-6"
+          transition={{ duration: 0.45, delay: 0.08 }}
         >
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(59, 130, 246, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-primary" />
-                  <span>Profile Information</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">First Name</label>
-                    <Input
-                      value={profile.firstName}
-                      onChange={(e) =>
-                        handleProfileChange('firstName', e.target.value)
-                      }
-                      className="h-11"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email Address</label>
-                  <Input
-                    type="email"
-                    value={profile.email}
-                    disabled={true}
-                    className="h-11"
-                  />
-                </div>
-                <Button
-                  onClick={handleSaveProfile}
-                  className="w-full bg-gradient-to-r from-primary to-blue-600"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </Spotlight>
+          <Card className="border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Profile
+              </CardTitle>
+              <CardDescription>
+                Your public username and sign-in email
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="settings-username" className="text-sm font-medium">
+                  Username
+                </label>
+                <Input
+                  id="settings-username"
+                  value={profile.username}
+                  onChange={(e) => handleProfileChange('username', e.target.value)}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="settings-email" className="text-sm font-medium">
+                  Email address
+                </label>
+                <Input
+                  id="settings-email"
+                  type="email"
+                  value={profile.email}
+                  disabled
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email changes aren’t supported yet.
+                </p>
+              </div>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="w-full shadow-lg shadow-primary/15"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {savingProfile ? 'Saving…' : 'Save profile'}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Password Change */}
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(139, 92, 246, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Lock className="h-5 w-5 text-primary" />
-                  <span>Change Password</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Current Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showPasswords.current ? 'text' : 'password'}
-                      value={profile.currentPassword}
-                      onChange={(e) =>
-                        handleProfileChange('currentPassword', e.target.value)
-                      }
-                      className="h-11 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          current: !prev.current,
-                        }))
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPasswords.current ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">New Password</label>
-                  <div className="relative">
-                    <Input
-                      type={showPasswords.new ? 'text' : 'password'}
-                      value={profile.newPassword}
-                      onChange={(e) =>
-                        handleProfileChange('newPassword', e.target.value)
-                      }
-                      className="h-11 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          new: !prev.new,
-                        }))
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPasswords.new ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Confirm New Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showPasswords.confirm ? 'text' : 'password'}
-                      value={profile.confirmPassword}
-                      onChange={(e) =>
-                        handleProfileChange('confirmPassword', e.target.value)
-                      }
-                      className="h-11 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPasswords((prev) => ({
-                          ...prev,
-                          confirm: !prev.confirm,
-                        }))
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPasswords.confirm ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <Button
-                  onClick={handlePasswordChange}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
-                >
-                  <Lock className="h-4 w-4 mr-2" />
-                  Update Password
-                </Button>
-              </CardContent>
-            </Card>
-          </Spotlight>
+        {/* Password */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.16 }}
+        >
+          <Card className="border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                Change password
+              </CardTitle>
+              <CardDescription>
+                At least 8 characters, different from your current one
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {passwordField('pw-current', 'Current password', 'current')}
+              {passwordField('pw-new', 'New password', 'new')}
+              {passwordField('pw-confirm', 'Confirm new password', 'confirm')}
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword}
+                className="w-full shadow-lg shadow-primary/15"
+              >
+                <Lock className="h-4 w-4 mr-2" />
+                {changingPassword ? 'Updating…' : 'Update password'}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          {/* Data Management */}
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(239, 68, 68, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  <span>Data Management</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
+        {/* Data management */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.24 }}
+        >
+          <Card className="border shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                Data management
+              </CardTitle>
+              <CardDescription>
+                Export your links or permanently delete your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <Button
+                  onClick={handleExportData}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export my data
+                </Button>
+
+                {!deleteOpen ? (
                   <Button
-                    onClick={handleExportData}
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export My Data
-                  </Button>
-                  <Button
-                    onClick={handleDeleteAccount}
+                    onClick={() => setDeleteOpen(true)}
                     variant="outline"
                     className="w-full justify-start text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
+                    Delete account
                   </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Deleting your account will permanently remove all your data
-                  and cannot be undone.
-                </p>
-              </CardContent>
-            </Card>
-          </Spotlight>
-        </motion.div>
-
-        {/* Subscription Plans */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="space-y-6"
-        >
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(34, 197, 94, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <span>Subscription Plans</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SubscriptionPlans />
-              </CardContent>
-            </Card>
-          </Spotlight>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-destructive/40 p-3">
+                    <label
+                      htmlFor="delete-password"
+                      className="text-sm font-medium text-destructive"
+                    >
+                      Enter your password to permanently delete your account
+                    </label>
+                    <Input
+                      id="delete-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="Password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      className="h-11"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleDeleteAccount}
+                        disabled={deleting}
+                        className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting ? 'Deleting…' : 'Permanently delete'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setDeleteOpen(false);
+                          setDeletePassword('');
+                        }}
+                        disabled={deleting}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Deleting your account permanently removes all your data and
+                cannot be undone.
+              </p>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
     </div>

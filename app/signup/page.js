@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Eye, EyeOff, Link2, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
-import { Spotlight } from '../components/ui/spotlight';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -29,88 +28,70 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const { toast } = useToast();
+
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    }
   };
-  const handleError = (error) => {
-    toast({
-      title: 'Error',
-      description: error?.message || 'An unexpected error occurred',
-      variant: 'destructive',
-    });
-  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
+    setFieldErrors({});
+    setFormError('');
+
+    const result = signupSchema.safeParse({ ...formData, agreedToTerms });
+    if (!result.success) {
+      const formatted = result.error.format();
+      const errors = {};
+      for (const field of ['username', 'email', 'password', 'confirmPassword', 'agreedToTerms']) {
+        const msg = formatted[field]?._errors?.[0];
+        if (msg) errors[field] = msg;
+      }
+      if (errors.agreedToTerms) {
+        setFormError(errors.agreedToTerms);
+      }
+      setFieldErrors(errors);
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      if (formData.password !== formData.confirmPassword) {
-        toast({
-          title: 'Error',
-          description: 'Passwords do not match',
-          variant: 'destructive',
-        });
-        return;
-      }
-      const result = signupSchema.safeParse({ ...formData, agreedToTerms });
-      if (!result.success) {
-        const formatted = result.error.format();
-
-        // Loop through each field in the error object
-        Object.entries(formatted).forEach(([field, value]) => {
-          if (field === '_errors') return; // skip form-level errors
-
-          if (value && 'message' in value) {
-            toast({
-              title: `Validation Error - ${field}`,
-              description: value.message,
-              variant: 'destructive',
-            });
-          } else if (value && Array.isArray(value._errors)) {
-            value._errors.forEach((msg) => {
-              toast({
-                title: `Validation Error - ${field}`,
-                description: msg,
-                variant: 'destructive',
-              });
-            });
-          }
-        });
-
-        return;
-      }
-
-      // Simulate API call
-      setIsLoading(true);
       const res = await fetch('/api/auth/sign-up', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          agreedToTerms: agreedToTerms,
-        }),
+        body: JSON.stringify({ ...formData, agreedToTerms }),
       });
       const data = await res.json();
       setIsLoading(false);
 
+      if (res.status === 409) {
+        // Username taken / email already registered
+        const usernameError = data?.errors?.username?._errors?.[0];
+        if (usernameError) {
+          setFieldErrors({ username: usernameError });
+        } else {
+          setFormError(data.message || 'Account already exists.');
+        }
+        return;
+      }
       if (!res.ok) {
-        handleError({ message: data.message || 'Signup failed' });
+        setFormError(data.error || data.message || 'Signup failed. Please try again.');
         return;
       }
 
       toast({
-        title: 'Success',
-        description: 'Account created successfully!',
-        variant: 'success',
+        title: 'Account created',
+        description: 'Check your email to verify your account.',
       });
-      if (res.ok) {
-        window.location.href = `/check-email?email=${formData.email}`;
-      }
+      window.location.href = `/check-email?email=${encodeURIComponent(formData.email)}`;
     } catch (error) {
-      handleError(error);
       setIsLoading(false);
+      setFormError('Something went wrong. Please try again.');
     }
   };
 
@@ -123,12 +104,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      {/* Theme Toggle */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
 
-      {/* Brand Logo */}
       <Link
         href="/"
         className="absolute top-4 left-4 flex items-center space-x-2 text-foreground hover:text-primary transition-colors"
@@ -138,226 +117,202 @@ export default function SignupPage() {
       </Link>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-sm my-10"
       >
-        <Spotlight className="w-full" spotlightColor="rgba(59, 130, 246, 0.15)">
-          <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-sm">
-            <CardHeader className="text-center space-y-4 pb-6">
-              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                <Link2 className="h-8 w-8 text-primary" />
+        <Card className="border shadow-2xl bg-card/80 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-2 pb-2">
+            <CardTitle className="text-2xl font-bold">Create account</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Free forever — upgrade only if you need more
+            </p>
+          </CardHeader>
+          <CardContent className="pb-8">
+            <form onSubmit={handleSignup} className="space-y-4" noValidate>
+              <div className="space-y-1.5">
+                <label htmlFor="signup-username" className="text-sm font-medium">
+                  Username
+                </label>
+                <Input
+                  id="signup-username"
+                  name="username"
+                  autoComplete="username"
+                  placeholder="john"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  aria-invalid={Boolean(fieldErrors.username)}
+                  className="h-11"
+                />
+                {fieldErrors.username && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {fieldErrors.username}
+                  </p>
+                )}
               </div>
-              <CardTitle className="text-2xl font-bold">
-                Create Account
-              </CardTitle>
-              <p className="text-muted-foreground">
-                Join LinkSnip and start shortening URLs
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">UserName</label>
+
+              <div className="space-y-1.5">
+                <label htmlFor="signup-email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="john@example.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  className="h-11"
+                />
+                {fieldErrors.email && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {fieldErrors.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="signup-password" className="text-sm font-medium">
+                  Password
+                </label>
+                <div className="relative">
                   <Input
-                    name="username"
-                    placeholder="John"
-                    value={formData.username}
+                    id="signup-password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="new-password"
+                    placeholder="Create a strong password"
+                    value={formData.password}
                     onChange={handleInputChange}
-                    required
-                    className="h-11"
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    className="h-11 pr-10"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input
-                    type="email"
-                    name="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Password</label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      placeholder="Create a strong password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      required
-                      className="h-11 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  {formData.password && (
-                    <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Password Requirements:
-                      </p>
-                      {passwordRequirements.map((req, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2 text-xs"
-                        >
-                          <Check
-                            className={`h-3 w-3 ${req.met ? 'text-green-500' : 'text-muted-foreground'}`}
-                          />
-                          <span
-                            className={
-                              req.met
-                                ? 'text-green-500'
-                                : 'text-muted-foreground'
-                            }
-                          >
-                            {req.text}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="confirmPassword"
-                      placeholder="Confirm your password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      required
-                      className="h-11 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-2">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-1 rounded border-border"
-                    required
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm text-muted-foreground leading-relaxed"
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
-                    I agree to the{' '}
-                    <Link
-                      href="/terms"
-                      className="text-primary hover:underline"
-                    >
-                      Terms of Service
-                    </Link>{' '}
-                    and{' '}
-                    <Link
-                      href="/privacy"
-                      className="text-primary hover:underline"
-                    >
-                      Privacy Policy
-                    </Link>
-                  </label>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
-                  disabled={isLoading || !agreedToTerms}
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Create Account <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
+                {formData.password && (
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 p-3 bg-muted/50 rounded-lg">
+                    {passwordRequirements.map((req, index) => (
+                      <div key={index} className="flex items-center gap-1.5 text-xs">
+                        <Check
+                          className={`h-3 w-3 shrink-0 ${
+                            req.met ? 'text-green-500' : 'text-muted-foreground'
+                          }`}
+                        />
+                        <span
+                          className={req.met ? 'text-green-600 dark:text-green-500' : 'text-muted-foreground'}
+                        >
+                          {req.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {fieldErrors.password && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
-              <div className="flex justify-center items-center gap-3">
-                <Button variant="outline" className="h-11">
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  Google
-                </Button>
+              <div className="space-y-1.5">
+                <label htmlFor="signup-confirm" className="text-sm font-medium">
+                  Confirm password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="signup-confirm"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    autoComplete="new-password"
+                    placeholder="Repeat your password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                    className="h-11 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {fieldErrors.confirmPassword}
+                  </p>
+                )}
               </div>
 
-              <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link
-                  href="/login"
-                  className="text-primary hover:underline font-medium"
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 rounded border-border cursor-pointer"
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-muted-foreground leading-relaxed"
                 >
-                  Sign in
-                </Link>
-              </p>
-            </CardContent>
-          </Card>
-        </Spotlight>
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-primary hover:underline">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="text-primary hover:underline">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+
+              {formError && (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              )}
+
+              <Button type="submit" className="w-full h-11" disabled={isLoading}>
+                {isLoading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Create account <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );

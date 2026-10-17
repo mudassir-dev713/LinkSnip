@@ -4,27 +4,23 @@ import React from 'react';
 import { MoonIcon, SunIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 import { createAnimation } from '@/theme/theme-animations';
 
-export function ThemeToggle({
-  variant = 'circle-blur',
-  start = 'top-left',
-  showLabel = false,
-  url = '',
-}) {
+export function ThemeToggle({ variant = 'circle-blur', start = 'top-left' }) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
 
-  const styleId = 'theme-transition-styles';
+  React.useEffect(() => setMounted(true), []);
 
-  const updateStyles = React.useCallback((css, name) => {
+  const updateStyles = React.useCallback((css) => {
     if (typeof window === 'undefined') return;
 
-    let styleElement = document.getElementById(styleId);
+    let styleElement = document.getElementById('theme-transition-styles');
 
     if (!styleElement) {
       styleElement = document.createElement('style');
-      styleElement.id = styleId;
+      styleElement.id = 'theme-transition-styles';
       document.head.appendChild(styleElement);
     }
 
@@ -32,13 +28,12 @@ export function ThemeToggle({
   }, []);
 
   const toggleTheme = React.useCallback(() => {
-    const animation = createAnimation(variant, start, url);
+    const animation = createAnimation(variant, start);
 
-    updateStyles(animation.css, animation.name);
+    updateStyles(animation.css);
 
     const switchTheme = () => {
-      const newTheme = theme === 'light' ? 'dark' : 'light';
-      setTheme(newTheme);
+      setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
     if (!document.startViewTransition) {
@@ -46,29 +41,21 @@ export function ThemeToggle({
       return;
     }
     document.startViewTransition(switchTheme);
-  }, [theme, setTheme]);
+  }, [theme, setTheme, variant, start, updateStyles]);
 
   return (
     <Button
       onClick={toggleTheme}
       variant="ghost"
       size="icon"
-      className="w-3 p-0 h-3 relative group"
+      className="relative"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
       name="Theme Toggle Button"
     >
-      <SunIcon className="size-[.4rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <MoonIcon className="absolute size-[.4rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 " />
-      <span className="sr-only">Theme Toggle </span> 
-      {showLabel && (
+      {mounted && (
         <>
-          <span className="hidden group-hover:block border rounded-full px-2 absolute -top-10">
-            {' '}
-            variant = {variant}
-          </span>
-          <span className="hidden group-hover:block border rounded-full px-2 absolute -bottom-10">
-            {' '}
-            start = {start}
-          </span>
+          <SunIcon className="h-[1.15rem] w-[1.15rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <MoonIcon className="absolute h-[1.15rem] w-[1.15rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </>
       )}
     </Button>

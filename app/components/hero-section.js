@@ -1,272 +1,139 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import {
-  Copy,
-  ExternalLink,
-  BarChart3,
-  Settings,
-  Plus,
-  Check,
-} from 'lucide-react';
-import { useState } from 'react';
-import { Spotlight } from './ui/spotlight';
-import { Spotlight as SpotlightNew } from './ui/spotlight-new';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import Balancer from 'react-wrap-balancer';
-import { useShortenUrl } from '@/hooks/useShortenUrl';
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowDown, Check, Clock, Lock, QrCode } from 'lucide-react';
+import { ShortenForm } from './shorten-form';
+
+const trustPoints = [
+  'Free to start',
+  'No signup to shorten a link',
+  'QR code ',
+];
+
+const exampleLongUrl =
+  'https://example.com/blog/how-to-write-better-newsletters?ref=homepage&utm_source=twitter';
+
+/**
+ * A static illustration of what the product does to a link.
+ * It uses the visitor's current host so nothing here is invented,
+ * and it carries no statistics.
+ */
+function LinkAnatomy() {
+  const [host, setHost] = useState('your-domain');
+
+  useEffect(() => {
+    setHost(window.location.host);
+  }, []);
+
+  return (
+    <div className="rounded-3xl bg-primary/5 p-5 sm:p-7">
+      <p className="mb-4 text-sm font-medium text-muted-foreground">
+        What happens to your link
+      </p>
+
+      <div className="rounded-xl bg-card p-4">
+        <p className="text-xs text-muted-foreground">Before</p>
+        <p className="mt-1 break-all text-sm leading-relaxed text-muted-foreground">
+          {exampleLongUrl}
+        </p>
+      </div>
+
+      <div className="flex justify-center py-2" aria-hidden="true">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <ArrowDown className="h-4 w-4" />
+        </span>
+      </div>
+
+      <div className="rounded-xl bg-card p-4">
+        <p className="text-xs text-muted-foreground">After</p>
+        <p className="mt-1 break-all text-lg font-semibold tracking-tight text-primary">
+          {host}/summer-sale
+        </p>
+        <ul className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5">
+            <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
+            QR code
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5">
+            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+            Password
+          </li>
+          <li className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            Expiry
+          </li>
+        </ul>
+      </div>
+
+      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+        Every link you create can show clicks over time, unique visitors,
+        devices, countries and referrers.
+      </p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Illustration only. Your links use this site&apos;s domain.
+      </p>
+    </div>
+  );
+}
 
 export function HeroSection() {
-  const [url, setUrl] = useState('');
-  const [customAlias, setCustomAlias] = useState('');
-  const [title, setTitle] = useState('');
-  const [password, setPassword] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [shortUrl, setShortUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [Error, setError] = useState(false);
-  const [copied, setCopied] = useState(null);
+  const reduce = useReducedMotion();
+  const rise = (delay = 0) =>
+    reduce
+      ? {}
+      : {
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.5, delay, ease: 'easeOut' },
+        };
 
-  const shortenMutation = useShortenUrl();
-
-  const handleShorten = () => {
-    if (!url) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a URL to shorten.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    shortenMutation.mutate(
-      { url, title },
-      {
-        onSuccess: (data) => {
-          setShortUrl(data.shortUrl);
-          setUrl('');
-          toast({
-            title: 'Success',
-            description: 'Short URL created successfully!',
-          });
-          setIsLoading(false);
-        },
-        onError: (error) => {
-          setIsLoading(false);
-          toast({
-            title: 'Error',
-            description: error.message || 'Something went wrong.',
-            variant: 'destructive',
-          });
-        },
-      }
-    );
-  };
-
-  const copyToClipboard = (text, id) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopied(id);
-        setTimeout(() => {
-          setCopied(null);
-        }, 2000);
-      })
-      .catch();
-  };
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-
-      {/* Hero Content */}
-      <div className="container relative z-10 px-4 mx-auto md:mt-0 mt-20">
-        <SpotlightNew
-          className="-top-20 left-40 md:-top-40 md:left-80 w-[240%]  "
-          fill="white"
-        />
-        <div className="md:h-32 h-24 w-full"></div>
-
-        <div className="text-center space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-4"
-          >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Shorten URLs with
-              <span className="block bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                Style & Analytics
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              <Balancer>
-                Transform long URLs into beautiful, shareable links with
-                powerful analytics and complete control.
-              </Balancer>
-            </p>
-          </motion.div>
-
-          {/* URL Shortener Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="max-w-2xl mx-auto"
-          >
-            <Spotlight
-              className="w-full"
-              spotlightColor="rgba(59, 130, 246, 0.15)"
+    <section className="relative">
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-28 md:pb-28 md:pt-36">
+        <div className="grid items-start gap-12 lg:grid-cols-12 lg:gap-14">
+          <div className="lg:col-span-7">
+            <motion.h1
+              {...rise(0)}
+              className="font-display text-5xl font-bold leading-[1.04] tracking-tight text-balance md:text-6xl xl:text-7xl"
             >
-              <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2"></CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Input
-                      placeholder="Enter your long URL here..."
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      className="flex-1 h-12 text-base"
-                    />
-                    <Button
-                      onClick={handleShorten}
-                      disabled={!url || isLoading}
-                      className="h-12 px-8 bg-gradient-to-r from-primary to-blue-600"
-                    >
-                      {isLoading ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          Shorten <Plus className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
+              Shorten a link. See who clicks it.
+            </motion.h1>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAdvanced((p) => !p)}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    {showAdvanced ? 'Hide Advanced' : 'Advanced Options'}
-                  </Button>
+            <motion.p
+              {...rise(0.08)}
+              className="mt-6 max-w-[52ch] text-lg text-muted-foreground text-pretty md:text-xl"
+            >
+              Paste a long URL and get a short one in seconds. Add click
+              analytics, a QR code, and an expiry whenever you need them.
+              Passwords and custom aliases come with a free account.
+            </motion.p>
 
-                  {showAdvanced && (
-                    <div className="space-y-3 p-4 bg-muted/40 border rounded-lg">
-                      <>
-                        <Input
-                          placeholder="Name for your dashboard"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                        />
-                        <Input
-                          placeholder="Custom alias (e.g. promo2025)"
-                          value={customAlias}
-                          onChange={(e) => setError(true)}
-                        />
-                      </>
-                      <>
-                        <Input
-                          type="password"
-                          placeholder="Optional password"
-                          value={password}
-                          onChange={(e) => setError(true)}
-                        />
-                        {Error && (
-                          <div className="flex items-center space-x-6  text-sm text-muted-foreground text-red-600">
-                            You Must be logged in to use CustomAlias And
-                            Password.
-                          </div>
-                        )}
-                      </>
-                    </div>
-                  )}
+            <motion.div
+              {...rise(0.16)}
+              id="shorten"
+              className="mt-9 scroll-mt-28 rounded-2xl bg-muted/50 p-4 sm:p-5"
+            >
+              <ShortenForm autoFocus />
+            </motion.div>
 
-                  {shortUrl && (
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Shortened URL:
-                        </span>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => copyToClipboard(shortUrl, shortUrl)}
-                          >
-                            {copied == shortUrl ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}{' '}
-                            &nbsp; Copy
-                          </Button>
-                          <a href={shortUrl} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="outline">
-                              <ExternalLink className="h-3 w-3 mr-1" /> Visit
-                            </Button>
-                          </a>
-                        </div>
-                      </div>
-                      <div className="p-3 bg-background rounded border font-mono text-sm break-all">
-                        {shortUrl}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-          </motion.div>
+            <motion.ul
+              {...rise(0.24)}
+              className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
+            >
+              {trustPoints.map((point) => (
+                <li key={point} className="flex items-center gap-2">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10">
+                    <Check className="h-2.5 w-2.5 text-primary" aria-hidden="true" />
+                  </span>
+                  {point}
+                </li>
+              ))}
+            </motion.ul>
+          </div>
 
-          {/* Feature Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-12"
-          >
-            {[
-              {
-                icon: BarChart3,
-                title: 'Analytics',
-                description: 'Track clicks, locations, and more',
-              },
-              {
-                icon: Copy,
-                title: 'Easy Sharing',
-                description: 'Copy and share with one click',
-              },
-              {
-                icon: ExternalLink,
-                title: 'Custom Links',
-                description: 'Create branded short URLs',
-              },
-            ].map((feature, index) => (
-              <Spotlight
-                key={index}
-                className="h-full"
-                spotlightColor="rgba(139, 92, 246, 0.1)"
-              >
-                <Card className="h-full border-0 bg-card/40 backdrop-blur-sm">
-                  <CardContent className="p-6 text-center space-y-4">
-                    <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                      <feature.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold">{feature.title}</h3>
-                    <p className="text-muted-foreground text-sm">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Spotlight>
-            ))}
+          <motion.div {...rise(0.2)} className="lg:col-span-5 lg:pt-3">
+            <LinkAnatomy />
           </motion.div>
         </div>
       </div>

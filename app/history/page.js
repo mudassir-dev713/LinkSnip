@@ -40,7 +40,6 @@ export default function MyLinksPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLinks, setSelectedLinks] = useState([]);
-  const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(null);
 
   const { toast } = useToast();
@@ -216,7 +215,7 @@ export default function MyLinksPage() {
                 Refresh
               </Button>
               <Link href="/">
-                <Button className="bg-gradient-to-r from-primary to-blue-600">
+                      <Button className="shadow-lg shadow-primary/15">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Link
                 </Button>
@@ -331,7 +330,7 @@ export default function MyLinksPage() {
           ) : filteredLinks.length === 0 ? (
             <Spotlight
               className="w-full"
-              spotlightColor="rgba(139, 92, 246, 0.1)"
+             
             >
               <Card className="border-0 bg-card/40 backdrop-blur-sm">
                 <CardContent className="p-12 text-center">
@@ -360,7 +359,7 @@ export default function MyLinksPage() {
                       Refresh
                     </Button>
                     <Link href="/dashboard/">
-                      <Button className="bg-gradient-to-r from-primary to-blue-600">
+                <Button className="shadow-lg shadow-primary/15">
                         <Plus className="h-4 w-4 mr-2" />
                         Create New Link
                       </Button>
@@ -465,31 +464,6 @@ export default function MyLinksPage() {
                               <p className="text-sm text-muted-foreground truncate">
                                 {link.fullUrl}
                               </p>
-                              {link.password && (
-                                <p className="text-sm text-muted-foreground truncate flex gap-8 items-center">
-                                  <div>
-                                    Password: &nbsp;
-                                    {showPassword
-                                      ? link?.password
-                                      : link?.password
-                                          ?.split('')
-                                          ?.map((char, index) => (
-                                            <span key={index}>*</span>
-                                          ))}
-                                  </div>
-                                  <span
-                                    onClick={() =>
-                                      setShowPassword(!showPassword)
-                                    }
-                                  >
-                                    {showPassword ? (
-                                      <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                      <Eye className="h-4 w-4" />
-                                    )}
-                                  </span>
-                                </p>
-                              )}
 
                               <div className="flex flex-wrap gap-1">
                                 {link.tags?.map((tag) => (
