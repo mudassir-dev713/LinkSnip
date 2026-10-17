@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 import {
   Search,
@@ -12,11 +11,12 @@ import {
   SortDesc,
   Check,
   Trash2,
+  AlertTriangle,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Spotlight } from '@/app/components/ui/spotlight';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   useQRCodes,
@@ -29,53 +29,44 @@ import { Sidebar } from '../components/sidebar';
 
 export default function MyQRCodesPage() {
   const { toast } = useToast();
-  const { data, isLoading, isError, refetch, isFetching } = useQRCodes();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [selected, setSelected] = useState([]);
+  const [copied, setCopied] = useState(null);
+
+  const { data: qrcodes = [], isLoading, isError, refetch, isFetching } = useQRCodes();
   const deleteQRCode = useDeleteQRCode();
   const bulkDeleteQRCodes = useBulkDeleteQRCodes();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('desc' || 'asc');
-  const [copied, setCopied] = useState(null);
-  const [selected, setSelected] = useState([]);
-
-  const qrcodes = data || [];
-
-  // --- Filtering & sorting ---
   const filtered = qrcodes
-    .filter((qr) => {
-      if (!searchTerm) return true;
-      const term = searchTerm.toLowerCase();
+    .filter((q) => {
+      const t = searchTerm.toLowerCase();
       return (
-        qr.title?.toLowerCase().includes(term) ||
-        qr.url?.toLowerCase().includes(term) ||
-        qr._id?.toLowerCase().includes(term)
+        (q.title || '').toLowerCase().includes(t) ||
+        (q.url || '').toLowerCase().includes(t)
       );
     })
     .sort((a, b) => {
-      const aTime = new Date(a.createdAt).getTime();
-      const bTime = new Date(b.createdAt).getTime();
-      return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+      const av = new Date(a.createdAt).getTime();
+      const bv = new Date(b.createdAt).getTime();
+      return sortOrder === 'asc' ? av - bv : bv - av;
     });
 
-  // --- Actions ---
   const copyToClipboard = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
-    toast({
-      title: 'Copied',
-      description: 'QR URL copied to clipboard',
-    });
   };
 
-  const downloadQR = (qrCode, title) => {
-    const link = document.createElement('a');
-    link.href = qrCode;
-    link.download = `${title || 'qrcode'}.png`;
-    link.click();
+  const downloadQR = (base64, title) => {
+    const a = document.createElement('a');
+    a.href = base64;
+    a.download = `${title || 'qr-code'}.png`;
+    a.click();
   };
 
   const bulkDownload = async () => {
+    if (selected.length === 0) return;
     const zip = new JSZip();
     selected.forEach((id) => {
       const qr = qrcodes.find((q) => q._id === id);
@@ -100,223 +91,195 @@ export default function MyQRCodesPage() {
   };
 
   const toggleSelect = (id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
-
-  const selectAll = () => {
-    setSelected(filtered.map((q) => q._id));
-  };
-
-  const deselectAll = () => {
-    setSelected([]);
+    setSelected((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   };
 
   return (
-    <div className="flex ">
-      <div className=" md:w-72 w-0 ">
+    <div className="flex min-h-dvh bg-background">
+      <div className="md:w-72 w-0">
         <Sidebar />
       </div>
-      <div className="p-4 md:p-8 space-y-8 flex-1">
+      <div className="space-y-8 p-4 md:p-8 flex-1">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="space-y-4"
-        >
-          <div className="flex md:items-center justify-between flex-col md:flex-row gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">My QR Codes</h1>
-              <p className="text-muted-foreground">
-                Browse, filter and manage your generated QR codes
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              {isFetching ? (
-                <span className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight">My QR Codes</h1>
+            <p className="text-sm text-muted-foreground">Browse, filter and manage your saved QR codes</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isFetching && 'animate-spin')} />
               Refresh
             </Button>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Filters + Bulk actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          <Spotlight
-            className="w-full"
-            spotlightColor="rgba(59, 130, 246, 0.15)"
-          >
-            <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-              <CardContent className="md:p-6 p-4 flex flex-col md:flex-row gap-4 md:items-center justify-between">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search QR codes by title, URL, or ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-11"
-                  />
-                </div>
-                <div className="flex gap-2">
+        {/* Filters */}
+        <section className="rounded-lg border bg-card p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by title or URL…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-10 pl-9"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                title="Toggle sort"
+              >
+                {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setSelected(
+                    selected.length === filtered.length
+                      ? []
+                      : filtered.map((q) => q._id)
+                  )
+                }
+              >
+                {selected.length === filtered.length && filtered.length > 0
+                  ? 'Deselect all'
+                  : 'Select all'}
+              </Button>
+              {selected.length > 0 && (
+                <>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                    }
+                    onClick={bulkDownload}
                   >
-                    {sortOrder === 'asc' ? (
-                      <SortAsc className="h-4 w-4" />
-                    ) : (
-                      <SortDesc className="h-4 w-4" />
-                    )}
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Download ({selected.length})
                   </Button>
-                  <Button variant="outline" size="sm" onClick={selectAll}>
-                    Select All
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleteQRCodes.isPending}
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Delete ({selected.length})
                   </Button>
-                  <Button variant="outline" size="sm" onClick={deselectAll}>
-                    Deselect
-                  </Button>
-                  {selected.length > 0 && (
-                    <>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleBulkDelete}
-                        disabled={bulkDeleteQRCodes.isLoading}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Delete (
-                        {selected.length})
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={bulkDownload}
-                      >
-                        <Download className="h-4 w-4 mr-1" /> Download (
-                        {selected.length})
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Spotlight>
-        </motion.div>
+                </>
+              )}
+            </div>
+          </div>
+          {filtered.length > 0 && (
+            <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
+              <span>{selected.length} of {filtered.length} selected</span>
+              <span className="tabular-nums">{qrcodes.length} total</span>
+            </div>
+          )}
+        </section>
 
         {/* Grid */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <span className="text-muted-foreground">Loading QR codes...</span>
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" />
+              <span>Loading…</span>
+            </div>
           </div>
         ) : isError ? (
-          <div className="text-red-500">Failed to load QR codes.</div>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-8 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <h3 className="font-display text-base font-semibold">Failed to load QR codes</h3>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              Retry
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            No QR codes found.
+          <div className="rounded-lg border bg-card p-10 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <QrCode className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="font-display text-base font-semibold">No QR codes found</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {searchTerm ? 'Try adjusting your search terms.' : 'Create your first QR code in the QR Studio.'}
+            </p>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-          >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((qr) => (
-              <Spotlight
+              <div
                 key={qr._id}
-                className="w-full"
-                spotlightColor="rgba(59, 130, 246, 0.08)"
+                onClick={() => toggleSelect(qr._id)}
+                className={cn(
+                  'group cursor-pointer rounded-lg border bg-card p-5 transition-colors hover:bg-muted/40',
+                  selected.includes(qr._id) && 'border-primary'
+                )}
               >
-                <Card
-                  className={`border-2 ${
-                    selected.includes(qr._id)
-                      ? 'border-primary'
-                      : 'border-transparent'
-                  } bg-card/40 backdrop-blur-sm cursor-pointer`}
-                  onClick={() => toggleSelect(qr._id)}
-                >
-                  <CardContent className="p-6 flex flex-col items-center space-y-4">
-                    <img
-                      src={qr.qrCode}
-                      alt={qr.title || 'QR Code'}
-                      className="w-48 h-48"
-                    />
-                    <div className="text-center space-y-2">
-                      <h3 className="font-semibold truncate max-w-xs">
-                        {qr.title || 'Untitled QR'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground truncate max-w-xs">
-                        {qr.url}
-                      </p>
-                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(qr.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyToClipboard(qr.url, qr._id);
-                        }}
-                      >
-                        {copied === qr._id ? (
-                          <Check className="h-4 w-4 mr-1" />
-                        ) : (
-                          <Copy className="h-4 w-4 mr-1" />
-                        )}
-                        Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadQR(qr.qrCode, qr.title);
-                        }}
-                      >
-                        <Download className="h-4 w-4 mr-1" /> Download
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteQRCode.mutate(qr._id, {
-                            onSuccess: () => {
-                              toast({
-                                title: 'Deleted',
-                                description: 'QR code deleted',
-                              });
-                              refetch();
-                            },
-                          });
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Spotlight>
+                <img
+                  src={qr.qrCode}
+                  alt={qr.title || 'QR Code'}
+                  className="mx-auto w-40"
+                />
+                <div className="mt-4 space-y-1 text-center">
+                  <h3 className="truncate text-sm font-medium">{qr.title || 'Untitled'}</h3>
+                  <p className="truncate text-xs text-muted-foreground">{qr.url}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    <Calendar className="inline h-3 w-3 mr-1" />
+                    {new Date(qr.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(qr.url, qr._id);
+                    }}
+                  >
+                    {copied === qr._id ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadQR(qr.qrCode, qr.title);
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteQRCode.mutate(qr._id, {
+                        onSuccess: () => {
+                          toast({ title: 'Deleted', description: 'QR code deleted' });
+                          refetch();
+                        },
+                      });
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
