@@ -16,6 +16,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // geoip-lite loads its .dat databases from disk at runtime — bundling it
+  // breaks the file paths, so require it natively instead.
+  serverExternalPackages: ['geoip-lite'],
   // Optimize bundle size
   webpack: (config, { dev, isServer }) => {
     // Replace React with Preact only in client production builds
