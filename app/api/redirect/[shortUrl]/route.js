@@ -3,20 +3,15 @@ import Click from '@/models/Click';
 import { userAgentFromString } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import ShortUrl from '@/models/ShortUrl';
-
-async function getCountryByIP(ip) {
-  try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`);
-    const data = await res.json();
-    return data.country_name || 'Unknown';
-  } catch (error) {
-    console.error('IP lookup failed:', error);
-    return 'Unknown';
-  }
-}
+import { checkRateLimit, getRateLimitIdentity, rateLimitedResponse } from '@/lib/rateLimit';
+import { extractIp, hashIp, lookupCountry } from '@/lib/ipUtils';
+import { resolveRedirectUrl, getLinkAvailabilityError } from '@/lib/redirectEngine';
 
 export async function POST(req, { params }) {
   try {
+    const rl = await checkRateLimit({ identity: getRateLimitIdentity(req), key: 'redirect', limit: 120, windowMs: 60 * 1000 });
+    if (!rl.allowed) return rateLimitedResponse(rl.resetAt);
+
     await dbConnect();
     const shorturl = await params;
     const urlDoc = await ShortUrl.findOne({ shortUrl: shorturl.shortUrl });
@@ -28,21 +23,18 @@ export async function POST(req, { params }) {
       );
     }
 
-    // Check if link has expired
-    if (urlDoc.expiresAt && new Date(urlDoc.expiresAt) < new Date()) {
+    // Shared gates: expiry, manual status, one-time use, schedule windows.
+    const unavailable = getLinkAvailabilityError(urlDoc);
+    if (unavailable) {
       return NextResponse.json(
-        { success: false, error: 'Link expired' },
+        { success: false, error: unavailable },
         { status: 410 }
       );
     }
 
-    await ShortUrl.updateOne({ _id: urlDoc._id }, { $inc: { clicks: 1 } });
-
     const headers = req.headers;
-    const ip =
-      headers.get('x-forwarded-for')?.split(',')[0] ||
-      headers.get('x-real-ip') ||
-      'unknown';
+    const rawIp = extractIp(req);
+    const ip = hashIp(rawIp);
     const ua = headers.get('user-agent') || '';
     const userAgent = userAgentFromString(ua);
 
@@ -56,52 +48,46 @@ export async function POST(req, { params }) {
     if (userAgent.device.type === 'mobile') deviceType = 'Mobile';
     else if (userAgent.device.type === 'tablet') deviceType = 'Tablet';
 
-    const country = await getCountryByIP(ip);
+    // Offline geo lookup — no external API call per click.
+    const { country, countryCode } = lookupCountry(rawIp);
+    const hour = new Date().getHours();
+
+    const ctx = {
+      deviceType,
+      browser: userAgent.browser.name || 'Unknown',
+      referrer,
+      country,
+      countryCode,
+      userAgent: ua,
+      hour,
+    };
+
+    const { url: redirectUrl, matchedBy } = resolveRedirectUrl(urlDoc, ctx);
 
     const click = await Click.create({
       urlId: urlDoc._id,
       ip,
-      browser: userAgent.browser.name || 'Unknown',
+      browser: ctx.browser,
       deviceType,
       isBot: userAgent.isBot,
       referrer,
       country,
-      hour: new Date().getHours(),
+      hour,
+      matchedBy,
+      destination: redirectUrl,
     });
 
-    // Check retargeting rules
-    let redirectUrl = urlDoc.fullUrl;
-    if (urlDoc.retargetingRules && urlDoc.retargetingRules.length > 0) {
-      for (const rule of urlDoc.retargetingRules) {
-        let matches = false;
-        
-        switch (rule.condition) {
-          case 'device':
-            matches = deviceType.toLowerCase() === rule.value.toLowerCase();
-            break;
-          case 'country':
-            matches = country.toLowerCase() === rule.value.toLowerCase();
-            break;
-          case 'browser':
-            matches = (userAgent.browser.name || '').toLowerCase().includes(rule.value.toLowerCase());
-            break;
-          case 'referrer':
-            matches = (referrer || '').toLowerCase().includes(rule.value.toLowerCase());
-            break;
-        }
-        
-        if (matches) {
-          redirectUrl = rule.redirectUrl;
-          break;
-        }
-      }
+    // One-time links die after their first verified (non-bot) click.
+    const updates = { $inc: { clicks: 1 } };
+    if (urlDoc.oneTimeLink && !urlDoc.usedAt && !userAgent.isBot) {
+      updates.$set = { usedAt: new Date() };
     }
+    await ShortUrl.updateOne({ _id: urlDoc._id }, updates);
 
-    return NextResponse.json({ 
-      success: true, 
-      click,
-      redirectUrl 
-    });
+    return NextResponse.json(
+      { success: true, click, redirectUrl, matchedBy },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
     console.error('Click tracking error:', error);
     return NextResponse.json(
