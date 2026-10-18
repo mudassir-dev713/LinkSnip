@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
-export function Spotlight({ children, className = "", spotlightColor = "#ffffff20" }) {
+export function Spotlight({ children, className = "", spotlightColor = "hsl(var(--primary) / 0.08)" }) {
   const divRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -44,7 +44,7 @@ export function Spotlight({ children, className = "", spotlightColor = "#ffffff2
       onBlur={handleBlur}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-border/60 ${className}`}
     >
       <div
         className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"

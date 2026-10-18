@@ -1,14 +1,10 @@
 "use client";
 
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export function Card({ className, ...props }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <div
       className={cn(
         "rounded-lg border bg-card text-card-foreground shadow-sm",
         className

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Click from '@/models/Click';
 import { dbConnect } from '@/lib/dbConnect';
+import ShortUrl from '@/models/ShortUrl';
+import { requireUser } from '@/lib/apiAuth';
+import { checkRateLimit, getRateLimitIdentity, rateLimitedResponse } from '@/lib/rateLimit';
 
 function getDateRange(period) {
   const now = new Date();
@@ -12,6 +15,20 @@ function getDateRange(period) {
     '90d': new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
   };
   return ranges[period] || ranges['7d'];
+}
+
+const PERIOD_MS = {
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+};
+
+/** The equal-length window immediately before the selected period. */
+function getPreviousDateRange(period) {
+  const ms = PERIOD_MS[period] || PERIOD_MS['7d'];
+  const now = Date.now();
+  return { start: new Date(now - 2 * ms), end: new Date(now - ms) };
 }
 
 function getDateFormat(period) {
@@ -69,6 +86,14 @@ function generateDateSeries(period) {
 }
 
 export async function GET(req, { params }) {
+  const session = await requireUser();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const identity = getRateLimitIdentity(req, session.user.id);
+  const rl = await checkRateLimit({ identity, key: 'analytics', limit: 120, windowMs: 60 * 1000 });
+  if (!rl.allowed) return rateLimitedResponse(rl.resetAt);
+
   const { shortUrl } = await params;
   const urlId = shortUrl;
   const url = new URL(req.url);
@@ -79,14 +104,22 @@ export async function GET(req, { params }) {
   }
 
   await dbConnect();
+  // Ownership check: users may only read analytics for their own links.
+  const ownsLink = await ShortUrl.exists({ _id: urlId, user: session.user.id });
+  if (!ownsLink) {
+    return NextResponse.json({ error: 'URL not found or unauthorized' }, { status: 404 });
+  }
+
   const objId = new mongoose.Types.ObjectId(urlId);
   const dateRange = getDateRange(period);
+  const previousRange = getPreviousDateRange(period);
   const dateFormat = getDateFormat(period);
 
   try {
     const [
       totalClicks,
       periodClicks,
+      previousPeriodClicks,
       uniqueIps,
       countries,
       browsers,
@@ -96,6 +129,8 @@ export async function GET(req, { params }) {
       topReferrers,
       botTraffic,
       hourlyDistribution,
+      weekdayHourly,
+      destinations,
     ] = await Promise.all([
       // Total clicks (all time)
       Click.countDocuments({ urlId: objId }),
@@ -104,6 +139,12 @@ export async function GET(req, { params }) {
       Click.countDocuments({
         urlId: objId,
         createdAt: { $gte: dateRange },
+      }),
+
+      // Clicks in the immediately preceding window (for the growth delta)
+      Click.countDocuments({
+        urlId: objId,
+        createdAt: { $gte: previousRange.start, $lt: previousRange.end },
       }),
 
       // Unique visitors in period
@@ -178,6 +219,31 @@ export async function GET(req, { params }) {
         { $group: { _id: '$hour', count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
+
+      // Weekday × hour matrix for the heatmap grid ($dayOfWeek: 1=Sunday)
+      Click.aggregate([
+        { $match: { urlId: objId, createdAt: { $gte: dateRange } } },
+        {
+          $group: {
+            _id: { day: { $dayOfWeek: '$createdAt' }, hour: '$hour' },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // Final-destination split (A/B variants and targeting rules)
+      Click.aggregate([
+        {
+          $match: {
+            urlId: objId,
+            createdAt: { $gte: dateRange },
+            destination: { $ne: null },
+          },
+        },
+        { $group: { _id: '$destination', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 8 },
+      ]),
     ]);
 
     // Generate complete date series and merge with actual data
@@ -192,16 +258,12 @@ export async function GET(req, { params }) {
       clicks: clicksMap.get(item._id) || 0,
     }));
 
-    // Calculate growth rate
-    const midPoint = Math.floor(enhancedClicksByDate.length / 2);
-    const firstHalf = enhancedClicksByDate
-      .slice(0, midPoint)
-      .reduce((sum, item) => sum + item.clicks, 0);
-    const secondHalf = enhancedClicksByDate
-      .slice(midPoint)
-      .reduce((sum, item) => sum + item.clicks, 0);
+    // Honest period-over-period growth: this window vs the one before it.
+    // null means "no prior baseline" (new link / first spike) rather than 0%.
     const growthRate =
-      firstHalf > 0 ? ((secondHalf - firstHalf) / firstHalf) * 100 : 0;
+      previousPeriodClicks > 0
+        ? Math.round(((periodClicks - previousPeriodClicks) / previousPeriodClicks) * 10000) / 100
+        : null;
 
     // Transform data for frontend
     const byCountry = countries.map((country, index) => ({
@@ -260,10 +322,34 @@ export async function GET(req, { params }) {
     const botPercentage =
       periodClicks > 0 ? Math.round((botTraffic / periodClicks) * 100) : 0;
 
+    // Weekday × hour heatmap matrix. Mongo $dayOfWeek: 1=Sun..7=Sat →
+    // re-order to Mon-first for display. cells[dayIndex][hour] = clicks.
+    const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const cells = Array.from({ length: 7 }, () => Array(24).fill(0));
+    for (const bucket of weekdayHourly || []) {
+      const mongoDay = bucket?._id?.day;
+      const hour = bucket?._id?.hour;
+      if (!Number.isFinite(mongoDay) || !Number.isFinite(hour)) continue;
+      const dayIndex = (mongoDay + 5) % 7; // 1(Sun)→6, 2(Mon)→0 … 7(Sat)→5
+      if (dayIndex >= 0 && dayIndex < 7 && hour >= 0 && hour < 24) {
+        cells[dayIndex][hour] = bucket.count;
+      }
+    }
+    const maxCell = Math.max(1, ...cells.flat());
+
+    // Final-destination breakdown (A/B split etc.)
+    const byDestination = (destinations || []).map((d) => ({
+      destination: d._id || 'Unknown',
+      clicks: d.count,
+      percentage:
+        periodClicks > 0 ? Math.round((d.count / periodClicks) * 100) : 0,
+    }));
+
     return NextResponse.json({
       // Basic metrics
       totalClicks,
       periodClicks,
+      previousPeriodClicks,
       uniqueVisitors: uniqueIps.length,
       topCountry: countries?.[0]?._id || 'Unknown',
       topBrowser: browsers?.[0]?._id || 'Unknown',
@@ -278,10 +364,12 @@ export async function GET(req, { params }) {
       // Chart data - COMPLETE series guaranteed
       clicksByDate: enhancedClicksByDate,
       hourlyHeatmap,
+      heatmap: { days: DAY_LABELS, cells, max: maxCell },
       devices,
       byCountry,
       byBrowser,
       byReferrer,
+      byDestination,
 
       // Metadata
       period,

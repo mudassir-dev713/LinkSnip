@@ -1,9 +1,18 @@
 import React from 'react';
 
-export const Loader = () => {
+import { cn } from '@/lib/utils';
+
+export const Loader = ({ className }) => {
   return (
-    <div className="w-screen h-screen flex justify-center items-center">
-      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+    <div
+      className={cn(
+        'flex items-center justify-center py-16',
+        className
+      )}
+      role="status"
+      aria-label="Loading"
+    >
+      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/25 border-t-primary animate-spin" />
     </div>
   );
 };

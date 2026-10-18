@@ -1,45 +1,98 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Link2, Lock, ShieldAlert, ArrowRight, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Link from 'next/link';
-import { Link2 } from 'lucide-react';
-import { Spotlight } from '../components/ui/spotlight';
+
+const REDIRECT_SECONDS = 2;
+
+const UNAVAILABLE_COPY = {
+  expired: 'This link has expired and no longer forwards anywhere.',
+  inactive: 'The owner has paused this link, so it is not forwarding right now.',
+  'one-time-used': 'This one-time link has already been opened once.',
+  'not-scheduled': 'This link is not active yet. Check back after its start time.',
+};
+
+function hostnameOf(url) {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+function Brand() {
+  return (
+    <Link href="/" className="inline-flex items-center gap-2">
+      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+        <Link2 className="h-4 w-4 text-primary" aria-hidden="true" />
+      </span>
+      <span className="font-display text-base font-bold tracking-tight">LinkSnip</span>
+    </Link>
+  );
+}
 
 export default function UrlInfoClient({ urlData }) {
-  const [verified, setVerified] = useState(!urlData.password);
+  const [verified, setVerified] = useState(!urlData.hasPassword);
   const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  // Final destination, resolved by the redirect engine (may differ from the
+  // base URL when A/B, geo, device or UTM rules apply).
+  const [target, setTarget] = useState(urlData.fullUrl);
+  const [unavailable, setUnavailable] = useState(null);
+  const [secondsLeft, setSecondsLeft] = useState(REDIRECT_SECONDS);
+  const clickLogged = useRef(false);
+  // Always-current destination so the countdown tick never reads a stale value.
+  const targetRef = useRef(urlData.fullUrl);
 
-  // ✅ Log click separately
+  useEffect(() => {
+    targetRef.current = target || urlData.fullUrl;
+  }, [target, urlData.fullUrl]);
+
+  // Log the click and resolve the actual destination.
   const logClick = async () => {
+    if (clickLogged.current) return;
+    clickLogged.current = true;
     try {
-      await fetch(`/api/redirect/${urlData.shortUrl}`, {
-        method: 'POST',
-      });
+      const res = await fetch(`/api/redirect/${urlData.shortUrl}`, { method: 'POST' });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result.success) {
+        if (result.redirectUrl) setTarget(result.redirectUrl);
+      } else if (result.error) {
+        setUnavailable(result.error);
+      }
     } catch (err) {
       console.error('Click log error', err);
     }
   };
 
-  // ✅ Redirect after password verification
+  // Log the click once, then run a short countdown and forward.
   useEffect(() => {
-    if (verified && urlData.status === 'active') {
-      // log click immediately
-      logClick();
+    if (!(verified && urlData.status === 'active' && !unavailable)) return undefined;
+    logClick();
+    setSecondsLeft(REDIRECT_SECONDS);
+    const tick = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(tick);
+          // replace() keeps the interstitial out of history so Back
+          // does not bounce the visitor straight back here.
+          window.location.replace(targetRef.current || urlData.fullUrl);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verified, urlData, unavailable]);
 
-      const timer = setTimeout(() => {
-        window.location.href = urlData.fullUrl;
-      }, 3000);
+  const goNow = () => window.location.replace(targetRef.current || urlData.fullUrl);
 
-      return () => clearTimeout(timer);
-    }
-  }, [verified, urlData]);
-
-  // ✅ Handle password submit
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -55,139 +108,152 @@ export default function UrlInfoClient({ urlData }) {
     setSubmitLoading(false);
 
     if (result.success) {
+      setTarget(result.fullUrl);
       setVerified(true);
     } else {
       setError(result.error || 'Incorrect password');
     }
   };
 
-  // 🔴 Inactive link
-  if (urlData.status !== 'active') {
+  // 🔴 Unavailable
+  if (urlData.status !== 'active' || unavailable) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-red-500">Link is Inactive</CardTitle>
-          </CardHeader>
-          <CardContent>This link has been disabled by the owner.</CardContent>
-        </Card>
+      <div className="flex min-h-dvh flex-col bg-background">
+        <header className="flex items-center justify-between px-4 py-3 sm:px-6">
+          <Brand />
+          <span className="text-xs text-muted-foreground">short link</span>
+        </header>
+        <main className="flex flex-1 items-center justify-center p-4">
+          <div className="w-full max-w-lg space-y-6 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5">
+              <ShieldAlert className="h-6 w-6 text-destructive" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <h1 className="font-display text-2xl font-bold tracking-tight">Link unavailable</h1>
+              <p className="text-sm text-muted-foreground">
+                {UNAVAILABLE_COPY[unavailable] || UNAVAILABLE_COPY.inactive}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-4">
+              <p className="break-all text-sm text-muted-foreground">
+                linksnip.app/{urlData.shortUrl}
+              </p>
+            </div>
+            <Button asChild variant="outline">
+              <Link href="/">
+                Create your own short link
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
+        </main>
       </div>
     );
   }
 
   // 🔒 Password required
-  if (!verified && urlData.password) {
+  if (!verified && urlData.hasPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="flex flex-col items-center w-full max-w-md">
-          <div className="flex flex-col items-center mb-8">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Link2 className="h-7 w-7 text-primary" />
+      <div className="flex min-h-dvh flex-col bg-background">
+        <header className="flex items-center justify-between px-4 py-3 sm:px-6">
+          <Brand />
+          <span className="text-xs text-muted-foreground">short link</span>
+        </header>
+        <main className="flex flex-1 items-center justify-center p-4">
+          <div className="w-full max-w-sm space-y-6">
+            <div className="space-y-1.5 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border bg-card">
+                <Lock className="h-6 w-6 text-primary" aria-hidden="true" />
               </div>
-              <span className="text-2xl font-bold text-foreground">
-                LinkSnip
-              </span>
-            </Link>
-            <span className="text-xs text-muted-foreground mt-1">
-              URL Shortener
-            </span>
+              <h1 className="font-display text-2xl font-bold tracking-tight">Protected link</h1>
+              <p className="text-sm text-muted-foreground">
+                This link is password-protected. Enter the password to continue.
+              </p>
+            </div>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <Input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter password"
+                autoFocus
+                aria-label="Link password"
+              />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button disabled={submitLoading} type="submit" className="w-full">
+                {submitLoading ? 'Verifying…' : 'Continue'}
+              </Button>
+            </form>
           </div>
-          <Spotlight className="w-full">
-            <Card>
-              <CardHeader>
-                <CardTitle>Password Required</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  This link is protected. Please enter the password to continue.
-                </p>
-                <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                  <Input
-                    type="password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Enter password"
-                    autoFocus
-                  />
-                  {error && <p className="text-destructive text-sm">{error}</p>}
-                  <Button
-                    disabled={submitLoading}
-                    type="submit"
-                    className="w-full"
-                  >
-                    Submit
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </Spotlight>
-        </div>
+        </main>
       </div>
     );
   }
 
-  //
-  // Redirecting state
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="flex flex-col items-center w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Link2 className="h-7 w-7 text-primary" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">LinkSnip</span>
-          </Link>
-          <span className="text-xs text-muted-foreground mt-1">
-            URL Shortener
-          </span>
-        </div>
-        <Spotlight className="w-full">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-primary text-center">
-                Redirecting...
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-muted-foreground">
-                  You are being redirected to:
-                </span>
-                <a
-                  href={urlData.fullUrl}
-                  className="mt-1 text-lg text-primary underline break-all hover:text-primary/80"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {urlData.fullUrl}
-                </a>
-                <div className="mt-4 text-sm text-muted-foreground text-center">
-                  <div>Title: {urlData.title || 'Untitled'}</div>
-                  <div>
-                    Created:{' '}
-                    {urlData.createdAt
-                      ? new Date(urlData.createdAt).toLocaleString()
-                      : ''}
-                  </div>
-                </div>
-                <div className="mt-8 text-muted-foreground text-xs">
-                  You’ll be redirected in a few seconds...
-                </div>
+  // ⏩ Redirecting
+  const destination = target || urlData.fullUrl;
+  const host = hostnameOf(destination);
 
-                {/* 🚀 Redirect Now Button */}
-                <Button
-                  className="mt-4 w-full"
-                  onClick={() => (window.location.href = urlData.fullUrl)}
-                >
-                  Redirect Now
+  return (
+    <div className="flex min-h-dvh flex-col bg-background">
+      <header className="flex items-center justify-between px-4 py-3 sm:px-6">
+        <Brand />
+        <span className="text-xs text-muted-foreground">short link</span>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-lg space-y-4">
+          <div className="rounded-lg border bg-card p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Redirecting you to
+            </p>
+            <p className="mt-2 font-display text-2xl font-bold tracking-tight break-words">
+              {host || 'destination'}
+            </p>
+            <p className="mt-1 break-all text-sm text-muted-foreground">{destination}</p>
+            {urlData.title && (
+              <p className="mt-3 border-t pt-3 text-sm">{urlData.title}</p>
+            )}
+
+            {/* Progress bar synced to the countdown */}
+            <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ animation: `redirect-progress ${REDIRECT_SECONDS}s linear forwards` }}
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Redirecting in {secondsLeft}s
+              </p>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" size="sm">
+                  <a href={destination} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                    New tab
+                  </a>
+                </Button>
+                <Button size="sm" onClick={goNow}>
+                  Go now
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </Spotlight>
-      </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Go back
+            </button>
+            <span>You&apos;re leaving LinkSnip. We don&apos;t control the destination.</span>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

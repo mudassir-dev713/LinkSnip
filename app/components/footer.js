@@ -1,163 +1,76 @@
-'use client';
+import Link from 'next/link';
+import { Link2 } from 'lucide-react';
 
-import { motion } from 'framer-motion';
-import { Link2, Github, Twitter, Linkedin } from 'lucide-react';
-import Balancer from 'react-wrap-balancer';
+const columns = [
+  {
+    heading: 'Product',
+    links: [
+      { name: 'Features', href: '/#features' },
+      { name: 'Analytics', href: '/dashboard/analytics' },
+      { name: 'QR generator', href: '/qr-generator' },
+      { name: 'Blog', href: '/blog' },
+    ],
+  },
+  {
+    heading: 'Account',
+    links: [
+      { name: 'Sign in', href: '/login' },
+      { name: 'Create account', href: '/signup' },
+      { name: 'Dashboard', href: '/dashboard' },
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      { name: 'Privacy', href: '/privacy' },
+      { name: 'Terms', href: '/terms' },
+    ],
+  },
+];
 
 export function Footer() {
   return (
-    <footer className="bg-background border-t border-border/40">
-      <div className="container px-4 mx-auto py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="space-y-4"
-          >
-            <div className="flex items-center space-x-2">
-              <Link2 className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">LinkSnip</span>
-            </div>
-            <p className="text-muted-foreground">
-              <Balancer>
-                The modern URL shortener built for teams and individuals who
-                care about design and analytics.
-              </Balancer>
+    <footer className="bg-muted/40">
+      <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
+          <div className="max-w-xs space-y-3">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                <Link2 className="h-4 w-4 text-primary" aria-hidden="true" />
+              </span>
+              <span className="font-display text-lg font-bold tracking-tight">
+                LinkSnip
+              </span>
+            </Link>
+            <p className="text-sm text-pretty leading-relaxed text-muted-foreground">
+              A URL shortener with click analytics, QR codes and link controls.
             </p>
-            <div className="flex space-x-4">
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Github className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Linkedin className="h-5 w-5" />
-              </a>
-            </div>
-          </motion.div>
+          </div>
 
-          {/* Product */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="space-y-4"
-          >
-            <h3 className="font-semibold">Product</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  API
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Analytics
-                </a>
-              </li>
-            </ul>
-          </motion.div>
-
-          {/* Company */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="space-y-4"
-          >
-            <h3 className="font-semibold">Company</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Careers
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </motion.div>
-
-          {/* Support */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            viewport={{ once: true }}
-            className="space-y-4"
-          >
-            <h3 className="font-semibold">Support</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Status
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Privacy
-                </a>
-              </li>
-            </ul>
-          </motion.div>
+          {columns.map((column) => (
+            <nav key={column.heading} aria-label={column.heading} className="space-y-3">
+              <h3 className="text-sm font-semibold tracking-tight">
+                {column.heading}
+              </h3>
+              <ul className="space-y-2 text-sm">
+                {column.links.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          viewport={{ once: true }}
-          className="border-t border-border/40 mt-12 pt-8 text-center text-muted-foreground"
-        >
-          <p>&copy; 2024 LinkSnip. All rights reserved.</p>
-        </motion.div>
+        <p className="mt-12 text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} LinkSnip. All rights reserved.
+        </p>
       </div>
     </footer>
   );

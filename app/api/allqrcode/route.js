@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { dbConnect } from '@/lib/dbConnect';
 import QrCode from '@/models/QrCode';
+import { checkRateLimit, getRateLimitIdentity, rateLimitedResponse } from '@/lib/rateLimit';
+
 export async function GET(request) {
   await dbConnect();
   const session = await getServerSession(authOptions);
@@ -11,6 +13,14 @@ export async function GET(request) {
   if (!session && !anonId) {
     return NextResponse.json({ error: 'User not Found' }, { status: 401 });
   }
+  const rl = await checkRateLimit({
+    identity: getRateLimitIdentity(request, session?.user?.id),
+    key: 'allqrcode',
+    limit: 60,
+    windowMs: 60 * 1000,
+  });
+  if (!rl.allowed) return rateLimitedResponse(rl.resetAt);
+
   let qr = [];
 
   if (session?.user?.id) {

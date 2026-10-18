@@ -1,6 +1,6 @@
 import ShortUrl from '@/models/ShortUrl';
 import { generateNanoId, getCustomShortUrl } from '@/utils/helper';
-import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 
 export async function createShortUrlWithoutUser(
   url,
@@ -8,7 +8,6 @@ export async function createShortUrlWithoutUser(
   title = 'Untitled Link',
   password = null
 ) {
-  console.log(title);
   const urlShort = new ShortUrl({
     fullUrl: url,
     shortUrl: generateNanoId(8),
@@ -24,7 +23,9 @@ export async function createShortUrlWithUser(
   user,
   slug = null,
   password = null,
-  title = 'Untitled Link'
+  title = 'Untitled Link',
+  tags = [],
+  extras = {}
 ) {
   const shorturl = slug || generateNanoId(8);
   if (slug) {
@@ -36,12 +37,15 @@ export async function createShortUrlWithUser(
     }
   }
 
+  // The pre-save hook on the model hashes this before it hits the database.
   const urlShort = new ShortUrl({
     fullUrl: url,
     shortUrl: shorturl,
     user,
-    password,
+    password: password || null,
     title,
+    tags,
+    ...extras,
   });
   await urlShort.save();
   return urlShort;

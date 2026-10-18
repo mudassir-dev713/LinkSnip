@@ -1,827 +1,640 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Globe,
-  Download,
-  RefreshCw,
-  MousePointer,
-  Smartphone,
-  Monitor,
-  Tablet,
-  HelpCircle,
+  Calendar,
   ChevronDown,
   Clock,
-  Activity,
+  Download,
+  Globe,
+  HelpCircle,
+  Link2,
+  Monitor,
+  MousePointerClick,
+  RefreshCw,
+  Search,
+  Share2,
   Shield,
-  Chrome,
-  ChromeIcon as Firefox,
-  AppleIcon as Safari,
-  DotIcon as Edge,
+  Smartphone,
+  Tablet,
   Target,
-  Settings,
+  TrendingDown,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
-import { Spotlight } from '@/app/components/ui/spotlight';
 import { Button } from '@/app/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/app/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { LineChart } from '@/components/ui/line-chart';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/app/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { useUrls } from '@/hooks/use-urls';
-import { useAnalytics } from '@/hooks/useAnalytics';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { useToast } from '@/hooks/use-toast';
+import { ClickChart } from './click-chart';
+import { countryFlag, countryName, referrerInfo } from '@/lib/countries';
 
-// Icon mappings
-const deviceIcons = { Smartphone, Monitor, Tablet, HelpCircle };
-const browserIcons = { Chrome, Firefox, Safari, Edge, Unknown: Globe };
+const PERIODS = [
+  { value: '24h', label: '24h', title: 'Last 24 hours' },
+  { value: '7d', label: '7d', title: 'Last 7 days' },
+  { value: '30d', label: '30d', title: 'Last 30 days' },
+  { value: '90d', label: '90d', title: 'Last 90 days' },
+];
+
+const DEVICE_ICONS = { Mobile: Smartphone, Desktop: Monitor, Tablet: Tablet, Unknown: HelpCircle };
+
+const BASE_URL =
+  typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_BASE_URL;
+
+const fullShortUrl = (url) =>
+  url?.shortUrl?.startsWith('http') ? url.shortUrl : `${BASE_URL}/${url?.shortUrl || ''}`;
 
 export default function AnalyticsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState('7d');
-  const [showUrlDropdown, setShowUrlDropdown] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [is24HourFormat, setIs24HourFormat] = useState(null);
-  const { data, isLoading: urlsLoading } = useUrls();
-
-  const urls = data?.urls || [];
-  const [selectedUrl, setSelectedUrl] = useState(
-    urls.length > 0 ? urls[0] : null
-  );
-  useEffect(() => {
-    setSelectedUrl(urls.length > 0 ? urls[0] : null);
-  }, [urls]);
-
-  // Add click outside handler for dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showUrlDropdown && !event.target.closest('.url-dropdown-container')) {
-        setShowUrlDropdown(false);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" />
+        </div>
       }
-    };
+    >
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUrlDropdown]);
+function AnalyticsContent() {
+  const searchParams = useSearchParams();
+  const linkParam = searchParams.get('link');
+  const [selectedPeriod, setSelectedPeriod] = useState('7d');
+  const [is24HourFormat, setIs24HourFormat] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [selectedUrl, setSelectedUrl] = useState(null);
+  const { toast } = useToast();
 
-  // fetch analytics via React Query
+  const { data: urlsData, isLoading: urlsLoading } = useUrls();
+  const urls = useMemo(() => urlsData?.urls || [], [urlsData]);
+
+  // Deep links (?link=<id>) preselect a link. Re-runs whenever the param
+  // changes so clicking Analytics on another link switches correctly, even
+  // if this page is already mounted. Falls back to the first link when the
+  // param is absent or doesn't match anything.
+  useEffect(() => {
+    if (urls.length === 0) return;
+    if (linkParam) {
+      const wanted = urls.find((u) => u._id === linkParam);
+      if (wanted) {
+        setSelectedUrl((prev) => (prev?._id === wanted._id ? prev : wanted));
+        return;
+      }
+    }
+    setSelectedUrl((prev) => prev ?? urls[0]);
+  }, [urls, linkParam]);
+
   const {
     data: analytics,
-    isLoading,
-    isFetching: refreshLoading,
+    isLoading: analyticsLoading,
+    isFetching,
     refetch,
     isError,
   } = useAnalytics(selectedUrl?._id, selectedPeriod);
 
-  const refreshAnalytics = () => {
-    refetch();
-  };
-
-  const handleFormatChange = (checked) => {
-    if (checked) {
-      localStorage.setItem('Time_Format', '12H');
-    } else {
-      localStorage.setItem('Time_Format', '24H');
-    }
-    setIs24HourFormat(!checked);
-  };
-  const formatTime = (hour) => {
-    if (is24HourFormat) {
-      return `${hour?.toString().padStart(2, '0')}:00`;
-    } else {
-      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      const ampm = hour < 12 ? 'AM' : 'PM';
-      return `${hour12}:00 ${ampm}`;
-    }
-  };
   useEffect(() => {
-    const format = localStorage.getItem('Time_Format');
-    if (format == '24H') {
-      setIs24HourFormat(true);
-    } else {
-      setIs24HourFormat(false);
-    }
+    setIs24HourFormat(localStorage.getItem('Time_Format') === '24H');
   }, []);
 
-  const periodLabels = {
-    '24h': 'Last 24 Hours',
-    '7d': 'Last 7 Days',
-    '30d': 'Last 30 Days',
-    '90d': 'Last 90 Days',
+  const handleFormatChange = (next) => {
+    localStorage.setItem('Time_Format', next ? '24H' : '12H');
+    setIs24HourFormat(next);
   };
+
+  const formatTime = (hour) => {
+    if (hour === null || hour === undefined) return '—';
+    if (is24HourFormat) return `${String(hour).padStart(2, '0')}:00`;
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${hour12}:00 ${hour < 12 ? 'AM' : 'PM'}`;
+  };
+
+  const filteredUrls = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return urls;
+    return urls.filter(
+      (u) =>
+        (u.title || '').toLowerCase().includes(q) ||
+        (u.shortUrl || '').toLowerCase().includes(q) ||
+        (u.fullUrl || '').toLowerCase().includes(q)
+    );
+  }, [urls, query]);
+
+  const periodTitle = PERIODS.find((p) => p.value === selectedPeriod)?.title;
+  const periodClicks = analytics?.periodClicks || 0;
+  const chartData = useMemo(
+    () =>
+      (analytics?.clicksByDate || []).map((d) => ({
+        ...d,
+        label: selectedPeriod === '24h' ? formatTime(d.hour) : d.label,
+      })),
+    // formatTime is derived from is24HourFormat
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [analytics?.clicksByDate, selectedPeriod, is24HourFormat]
+  );
+  const seriesTotal = chartData.reduce((sum, d) => sum + d.clicks, 0);
+
+  const refreshAnalytics = () => {
+    if (!selectedUrl) return;
+    refetch();
+    toast({ title: 'Refreshed', description: 'Analytics data updated.' });
+  };
+
+  const exportAnalytics = () => {
+    if (!selectedUrl?._id) return;
+    window.location.href = `/api/export/analytics/${selectedUrl._id}?period=${selectedPeriod}`;
+    toast({ title: 'Exported', description: 'Your data is downloading as CSV.' });
+  };
+
+  if (!urlsLoading && urls.length === 0) {
+    return (
+      <div className="p-4 md:p-8">
+        <div className="mx-auto max-w-md rounded-lg border bg-card p-10 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Link2 className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="font-display text-xl font-semibold tracking-tight">No links yet</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Create your first short link and its analytics will show up here.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href="/dashboard">Create a link</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="flex flex-col">
-        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-4"
+    <div className="space-y-8 p-4 md:p-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-sm text-muted-foreground">
+            How your links perform — down to the hour.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleFormatChange(!is24HourFormat)}
+            title="Toggle hour format"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">
-                  Analytics Dashboard
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Comprehensive insights into your URL performance
-                </p>
+            <Clock className="mr-1.5 h-3.5 w-3.5" />
+            {is24HourFormat ? '24h' : '12h'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={refreshAnalytics} disabled={isFetching || !selectedUrl}>
+            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isFetching && 'animate-spin')} />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportAnalytics} disabled={!selectedUrl}>
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Export
+          </Button>
+        </div>
+      </div>
+
+      {/* Link picker + period */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="h-auto w-full justify-between gap-3 py-2.5 text-left lg:w-[26rem]"
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-primary">
+                  {selectedUrl ? fullShortUrl(selectedUrl).replace(/^https?:\/\//, '') : 'Select a link'}
+                </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {selectedUrl?.title || 'No title'} · {(selectedUrl?.clicks || 0).toLocaleString()} clicks
+              </span>
+              </span>
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[26rem] p-0">
+            <div className="border-b p-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search links…"
+                  className="h-9 w-full rounded-md bg-transparent pl-8 pr-2 text-sm outline-none placeholder:text-muted-foreground"
+                />
               </div>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                {/* Time Format Toggle */}
-                <div className="flex items-center space-x-2">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">24h</span>
-                  <Switch
-                    checked={!is24HourFormat}
-                    onCheckedChange={handleFormatChange}
-                  />
-                  <span className="text-sm text-muted-foreground">12h</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refreshAnalytics}
-                    disabled={loading}
+            </div>
+            <div className="max-h-72 overflow-y-auto p-1">
+              {filteredUrls.length === 0 ? (
+                <p className="px-3 py-6 text-center text-sm text-muted-foreground">No matches</p>
+              ) : (
+                filteredUrls.map((url) => (
+                  <button
+                    key={url._id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedUrl(url);
+                      setPickerOpen(false);
+                      setQuery('');
+                    }}
+                    className={cn(
+                      'flex w-full flex-col gap-0.5 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-accent',
+                      url._id === selectedUrl?._id && 'bg-accent/60'
+                    )}
                   >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-                    />
-                    <span className="hidden sm:inline">Refresh</span>
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Export</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* URL Selector */}
-            <Spotlight
-              className="w-full"
-              spotlightColor="rgba(59, 130, 246, 0.15)"
-            >
-              <Card className="border-0 shadow-xl bg-card/60 backdrop-blur-sm">
-                <CardContent className="p-3 sm:p-4">
-                  {urlsLoading ? (
-                    <div className="flex justify-center items-center h-16 ">
-                      <span className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin inline-block" />
-                    </div>
-                  ) : !urls || urls.length === 0 ? (
-                    <div className="text-center text-muted-foreground">
-                      No URLs found.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Analyzing URL:
-                        </label>
-                        <div className="relative url-dropdown-container">
-                          <Button
-                            variant="ghost"
-                            onClick={() => setShowUrlDropdown(!showUrlDropdown)}
-                            className="h-auto p-2 justify-start text-left w-full sm:w-auto hover:bg-muted/50 rounded-md"
-                          >
-                            <div className="space-y-1 ">
-                              <div className="font-semibold text-primary">
-                                {selectedUrl
-                                  ? selectedUrl.shortUrl &&
-                                    selectedUrl.shortUrl.startsWith('http')
-                                    ? selectedUrl.shortUrl
-                                    : `${process.env.NEXT_PUBLIC_BASE_URL}/${selectedUrl.shortUrl}`
-                                  : 'Select URL'}
-                              </div>
-                              <div className="text-sm text-muted-foreground truncate max-w-full sm:max-w-md">
-                                {selectedUrl?.title || 'No title'}
-                              </div>
-                            </div>
-                            <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
-                          </Button>
-                          {showUrlDropdown && (
-                            <div className="  top-full left-0 mt-2 w-full sm:w-96 bg-card border border-border rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-scroll">
-                              {urls.map((url) => (
-                                <button
-                                  key={url._id}
-                                  onClick={() => {
-                                    setSelectedUrl(url);
-                                    setShowUrlDropdown(false);
-                                  }}
-                                  className="w-full p-3 text-left hover:bg-muted/50 first:rounded-t-lg last:rounded-b-lg transition-colors"
-                                >
-                                  <div className="space-y-1">
-                                    <div className="font-medium text-primary truncate">
-                                      {url.shortUrl &&
-                                        (url.shortUrl.startsWith('http')
-                                          ? url.shortUrl
-                                          : `${process.env.NEXT_PUBLIC_BASE_URL}/${url.shortUrl}`)}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground truncate">
-                                      {url.title}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-center sm:text-right">
-                        <div className="text-xl sm:text-2xl font-bold">
-                          {analytics?.periodClicks?.toLocaleString() || 0}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Total Clicks
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-
-            {/* Time Period Selector */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <div className="flex flex-wrap gap-2">
-                {['24h', '7d', '30d', '90d'].map((period) => (
-                  <Button
-                    key={period}
-                    variant={selectedPeriod === period ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(period)}
-                    className={`${selectedPeriod === period ? 'bg-primary' : ''} flex-1 sm:flex-none`}
-                  >
-                    {period}
-                  </Button>
-                ))}
-              </div>
-              <Badge variant="secondary" className="w-fit">
-                {periodLabels[selectedPeriod]}
-              </Badge>
-            </div>
-          </motion.div>
-
-          {/* Enhanced Overview Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
-          >
-            {loading ? (
-              <>
-                <div class="animate-pulse h-full bg-primary/10">
-                  <div class="border-0 bg-card/40 backdrop-blur-sm">
-                    <div class="p-3 sm:p-4 lg:p-6">
-                      <div class="flex items-center justify-between">
-                        <div class="min-w-0 flex-1">
-                          <p class="h-4 bg-gray-500 rounded w-full"></p>
-                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
-                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
-                        </div>
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="animate-pulse h-full bg-primary/10">
-                  <div class="border-0 bg-card/40 backdrop-blur-sm">
-                    <div class="p-3 sm:p-4 lg:p-6">
-                      <div class="flex items-center justify-between">
-                        <div class="min-w-0 flex-1">
-                          <p class="h-4 bg-gray-500 rounded w-full"></p>
-                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
-                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
-                        </div>
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="animate-pulse h-full bg-primary/10">
-                  <div class="border-0 bg-card/40 backdrop-blur-sm">
-                    <div class="p-3 sm:p-4 lg:p-6">
-                      <div class="flex items-center justify-between">
-                        <div class="min-w-0 flex-1">
-                          <p class="h-4 bg-gray-500 rounded w-full"></p>
-                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
-                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
-                        </div>
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="animate-pulse h-full bg-primary/10">
-                  <div class="border-0 bg-card/40 backdrop-blur-sm">
-                    <div class="p-3 sm:p-4 lg:p-6">
-                      <div class="flex items-center justify-between">
-                        <div class="min-w-0 flex-1">
-                          <p class="h-4 bg-gray-500 rounded w-full"></p>
-                          <p class="h-6 bg-gray-500 rounded w-1/2 my-2"></p>
-                          <div class="w-1/2s h-10 bg-gray-500 rounded mt-3"></div>
-                        </div>
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <div class="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 bg-gray-500 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : analytics ? (
-              <>
-                <Spotlight
-                  className="h-full"
-                  spotlightColor="rgba(139, 92, 246, 0.1)"
-                >
-                  <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            Period Clicks
-                          </p>
-                          <p className="text-lg sm:text-xl lg:text-2xl font-bold">
-                            {analytics.periodClicks?.toLocaleString() || 0}
-                          </p>
-                          {analytics.growthRate !== undefined && (
-                            <div className="flex items-center mt-1">
-                              {analytics.growthRate >= 0 ? (
-                                <TrendingUp className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3 text-red-500 mr-1 flex-shrink-0" />
-                              )}
-                              <span
-                                className={`text-xs ${analytics.growthRate >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                              >
-                                {analytics.growthRate > 0 ? '+' : ''}
-                                {analytics.growthRate}%
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <MousePointer className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Spotlight>
-
-                <Spotlight
-                  className="h-full"
-                  spotlightColor="rgba(139, 92, 246, 0.1)"
-                >
-                  <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            Unique Visitors
-                          </p>
-                          <p className="text-lg sm:text-xl lg:text-2xl font-bold">
-                            {analytics.uniqueVisitors?.toLocaleString() || 0}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {analytics.avgClicksPerVisitor} avg clicks/visitor
-                          </p>
-                        </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Spotlight>
-
-                <Spotlight
-                  className="h-full"
-                  spotlightColor="rgba(139, 92, 246, 0.1)"
-                >
-                  <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            Peak Hour
-                          </p>
-                          <p className="text-lg sm:text-xl lg:text-2xl font-bold">
-                            {analytics.peakHour !== 'N/A'
-                              ? formatTime(analytics.peakHour)
-                              : 'N/A'}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            Most active time
-                          </p>
-                        </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Clock className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-orange-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Spotlight>
-
-                <Spotlight
-                  className="h-full"
-                  spotlightColor="rgba(139, 92, 246, 0.1)"
-                >
-                  <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            Bot Traffic
-                          </p>
-                          <p className="text-lg sm:text-xl lg:text-2xl font-bold">
-                            {analytics.botPercentage || 0}%
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {analytics.botTraffic || 0} bot clicks
-                          </p>
-                        </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Shield className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-purple-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Spotlight>
-              </>
-            ) : selectedUrl ? (
-              <div className="col-span-2 lg:col-span-4 text-center text-muted-foreground">
-                No analytics data available for this URL
-              </div>
-            ) : (
-              <div className="col-span-2 lg:col-span-4 text-center text-muted-foreground">
-                Select a URL to view analytics
-              </div>
-            )}
-          </motion.div>
-
-          {/* Enhanced Charts Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
-          >
-            {/* Enhanced Click Trends Line Chart */}
-            <div className="lg:col-span-2">
-              <Spotlight
-                className="h-full"
-                spotlightColor="rgba(59, 130, 246, 0.08)"
-              >
-                <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                  <CardHeader className="pb-2 sm:pb-4">
-                    <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="flex items-center space-x-2">
-                        <TrendingUp className="h-5 w-5 text-primary flex-shrink-0" />
-                        <span className="text-base sm:text-lg">
-                          Click Trends
-                        </span>
-                      </div>
-                      {analytics?.growthRate !== undefined && (
-                        <Badge
-                          variant={
-                            analytics.growthRate >= 0
-                              ? 'default'
-                              : 'destructive'
-                          }
-                        >
-                          {analytics.growthRate > 0 ? '+' : ''}
-                          {analytics.growthRate}%
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="h-48 sm:h-64 lg:h-80 w-full relative">
-                      {analytics?.clicksByDate &&
-                      analytics.clicksByDate.length > 0 ? (
-                        <div className="w-full h-full [&_.recharts-tooltip-wrapper]:z-[9999] [&_.recharts-tooltip-cursor]:z-[9998]">
-                          <LineChart
-                            data={analytics.clicksByDate.map((item) => ({
-                              ...item,
-                              label:
-                                selectedPeriod === '24h'
-                                  ? formatTime(item.hour)
-                                  : item.label,
-                            }))}
-                            height={selectedPeriod === '24h' ? 250 : 300}
-                            showDots={true}
-                            animate={true}
-                            period={selectedPeriod}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">
-                          No click data available
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Spotlight>
-            </div>
-
-            {/* Enhanced Hourly Heatmap */}
-            <Spotlight
-              className="h-full"
-              spotlightColor="rgba(139, 92, 246, 0.08)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Activity className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-base sm:text-lg">
-                      Hourly Activity
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1 sm:gap-2">
-                    {analytics?.hourlyHeatmap?.map((hour, index) => {
-                      const maxClicks = Math.max(
-                        ...(analytics.hourlyHeatmap?.map((h) => h.clicks) || [
-                          1,
-                        ])
-                      );
-                      const intensity =
-                        maxClicks > 0 ? hour.clicks / maxClicks : 0;
-
-                      return (
-                        <div
-                          key={index}
-                          className="aspect-square rounded-sm flex items-center justify-center text-xs font-medium transition-all hover:scale-110 cursor-pointer"
-                          style={{
-                            backgroundColor: `rgba(59, 130, 246, ${Math.max(intensity, 0.1)})`,
-                            color: intensity > 0.5 ? 'white' : 'inherit',
-                          }}
-                          title={`${formatTime(hour.hour)}: ${hour.clicks} clicks`}
-                        >
-                          {hour.hour}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      Peak:{' '}
-                      {analytics?.peakHour !== 'N/A'
-                        ? formatTime(analytics?.peakHour)
-                        : 'No data'}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Spotlight>
-          </motion.div>
-
-          {/* Device and Browser Analytics */}
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
-          >
-            {/* Enhanced Device Breakdown */}
-            <Spotlight
-              className="h-full"
-              spotlightColor="rgba(139, 92, 246, 0.08)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Smartphone className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-base sm:text-lg">Device Types</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3 sm:space-y-4">
-                  {analytics?.devices && analytics.devices.length > 0 ? (
-                    analytics.devices.map((device, index) => {
-                      const IconComponent =
-                        deviceIcons[device.icon] || HelpCircle;
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="flex items-center space-x-3 min-w-0 flex-1">
-                            <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
-                            <span className="font-medium capitalize truncate">
-                              {device.type || 'Unknown'}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                            <div className="text-xs sm:text-sm text-muted-foreground text-right">
-                              {device.count} ({device.percentage}%)
-                            </div>
-                            <Progress
-                              value={device.percentage}
-                              className="w-16 sm:w-20"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No device data available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-
-            {/* Browser Breakdown */}
-            <Spotlight
-              className="h-full"
-              spotlightColor="rgba(139, 92, 246, 0.08)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Globe className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-base sm:text-lg">Top Browsers</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3 sm:space-y-4">
-                  {analytics?.byBrowser && analytics.byBrowser.length > 0 ? (
-                    analytics.byBrowser.map((browser, index) => {
-                      const IconComponent =
-                        browserIcons[browser.browser] || Globe;
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="flex items-center space-x-3 min-w-0 flex-1">
-                            <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
-                            <span className="font-medium truncate">
-                              {browser.browser}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              #{browser.rank}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                            <div className="text-xs sm:text-sm text-muted-foreground text-right">
-                              {browser.clicks} ({browser.percentage}%)
-                            </div>
-                            <Progress
-                              value={browser.percentage}
-                              className="w-16 sm:w-20"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No browser data available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-          </motion.div>
-
-          {/* Geographic and Referrer Data */}
-          <motion.div
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
-          >
-            {/* Enhanced Top Countries */}
-            <Spotlight
-              className="h-full"
-              spotlightColor="rgba(59, 130, 246, 0.08)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-2">
-                      <Globe className="h-5 w-5 text-primary flex-shrink-0" />
-                      <span className="text-base sm:text-lg">
-                        Top Countries
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-medium text-primary">
+                        {fullShortUrl(url).replace(/^https?:\/\//, '')}
                       </span>
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3 sm:space-y-4">
-                  {analytics?.byCountry && analytics.byCountry.length > 0 ? (
-                    analytics.byCountry.slice(0, 8).map((country, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between gap-3"
-                      >
-                        <div className="flex items-center space-x-3 min-w-0 flex-1">
-                          <div className="w-5 h-4 sm:w-6 sm:h-4 bg-muted rounded-sm flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs">🌍</span>
-                          </div>
-                          <span className="font-medium truncate">
-                            {country.country || 'Unknown'}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            #{country.rank}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                          <div className="text-xs sm:text-sm text-muted-foreground text-right">
-                            {country.clicks?.toLocaleString() || 0} (
-                            {country.percentage}%)
-                          </div>
-                          <Progress
-                            value={country.percentage}
-                            className="w-12 sm:w-16"
-                          />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No country data available
+                      <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
+                        {url.clicks?.toLocaleString() || 0} clicks
+                      </span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-
-            {/* Enhanced Top Referrers */}
-            <Spotlight
-              className="h-full"
-              spotlightColor="rgba(139, 92, 246, 0.08)"
-            >
-              <Card className="border-0 bg-card/40 backdrop-blur-sm">
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-base sm:text-lg">
-                      Traffic Sources
+                    <span className="truncate text-xs text-muted-foreground">
+                      {url.title || 'No title'}
                     </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3 sm:space-y-4">
-                  {analytics?.byReferrer && analytics.byReferrer.length > 0 ? (
-                    analytics.byReferrer.map((referrer, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between gap-3"
-                      >
-                        <div className="flex items-center space-x-3 min-w-0 flex-1">
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-primary">
-                              {(referrer._id || 'D').charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="font-medium truncate">
-                            {referrer._id === 'Direct'
-                              ? 'Direct Traffic'
-                              : referrer._id || 'Unknown'}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                          <div className="text-xs sm:text-sm text-muted-foreground text-right">
-                            {referrer.clicks?.toLocaleString() || 0} (
-                            {referrer.percentage}%)
-                          </div>
-                          <Progress
-                            value={referrer.percentage}
-                            className="w-12 sm:w-16"
-                          />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No referrer data available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Spotlight>
-          </motion.div>
-        </main>
+                  </button>
+                ))
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="inline-flex w-fit rounded-md border p-0.5">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setSelectedPeriod(p.value)}
+              className={cn(
+                'rounded-[5px] px-3 py-1.5 text-xs font-medium transition-colors',
+                selectedPeriod === p.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {urlsLoading || (analyticsLoading && selectedUrl) ? (
+        <SkeletonPage />
+      ) : isError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <Shield className="h-4 w-4" />
+            <span className="text-sm font-medium">Couldn&apos;t load analytics.</span>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
+            <Stat
+              label="Clicks"
+              icon={MousePointerClick}
+              value={periodClicks.toLocaleString()}
+              sub={<GrowthBadge rate={analytics?.growthRate} />}
+            />
+            <Stat
+              label="Unique visitors"
+              icon={Users}
+              value={(analytics?.uniqueVisitors || 0).toLocaleString()}
+              sub={`${analytics?.avgClicksPerVisitor ?? 0} clicks / visitor`}
+            />
+            <Stat
+              label="Peak hour"
+              icon={Clock}
+              value={analytics?.peakHour === 'N/A' ? '—' : formatTime(analytics?.peakHour)}
+              sub="Busiest hour in period"
+            />
+            <Stat
+              label="Bot traffic"
+              icon={Shield}
+              value={`${analytics?.botPercentage || 0}%`}
+              sub={`${(analytics?.botTraffic || 0).toLocaleString()} filtered clicks`}
+            />
+          </div>
+
+          {/* Click trend */}
+          <Panel
+            title="Clicks over time"
+            icon={TrendingUp}
+            action={
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {(analytics?.totalClicks || 0).toLocaleString()} all time
+              </span>
+            }
+          >
+            <div className="mb-3 flex items-baseline gap-2">
+              <span className="font-display text-2xl tabular-nums">{periodClicks.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">{periodTitle}</span>
+            </div>
+            {seriesTotal > 0 ? (
+              <ClickChart data={chartData} period={selectedPeriod} />
+            ) : (
+              <p className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                No clicks recorded in this period.
+              </p>
+            )}
+          </Panel>
+
+          {/* Timing */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Panel title="Hourly activity" icon={Clock}>
+              <HourlyBars hours={analytics?.hourlyHeatmap || []} formatTime={formatTime} />
+            </Panel>
+            <Panel title="When clicks happen" icon={Calendar} className="lg:col-span-2">
+              <WeekdayHeatmap heatmap={analytics?.heatmap} formatTime={formatTime} />
+            </Panel>
+          </div>
+
+          {/* Audiences */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Panel title="Devices" icon={Smartphone}>
+              <RankList
+                emptyLabel="No device data yet."
+                items={deviceItems(analytics?.devices)}
+              />
+            </Panel>
+            <Panel title="Browsers" icon={Globe}>
+              <RankList
+                emptyLabel="No browser data yet."
+                items={(analytics?.byBrowser || []).map((b) => ({
+                  key: b.browser,
+                  label: b.browser || 'Unknown',
+                  value: b.clicks,
+                  percentage: b.percentage,
+                }))}
+              />
+            </Panel>
+            <Panel title="Countries" icon={Globe}>
+              <RankList
+                emptyLabel="No location data yet."
+                items={(analytics?.byCountry || []).slice(0, 8).map((c) => ({
+                  key: c.country,
+                  leading: <span aria-hidden>{countryFlag(c.country)}</span>,
+                  label: countryName(c.country),
+                  value: c.clicks,
+                  percentage: c.percentage,
+                }))}
+              />
+            </Panel>
+            <Panel title="Referrers" icon={Target}>
+              <RankList
+                emptyLabel="No referrer data yet."
+                items={(analytics?.byReferrer || []).map((r, i) => ({
+                  key: r._id || i,
+                  label: referrerInfo(r._id).label,
+                  value: r.clicks,
+                  percentage: r.percentage,
+                }))}
+              />
+            </Panel>
+          </div>
+
+          {/* Destination split (A/B, geo, retargeting) */}
+          {analytics?.byDestination?.length > 0 && (
+            <Panel title="Destination split" icon={Share2}>
+              <RankList
+                emptyLabel=""
+                items={analytics.byDestination.map((d) => ({
+                  key: d.destination,
+                  label: d.destination,
+                  value: d.clicks,
+                  percentage: d.percentage,
+                  mono: true,
+                }))}
+              />
+            </Panel>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Panel({ title, icon: Icon, action, children, className }) {
+  return (
+    <section className={cn('rounded-lg border bg-card p-5', className)}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 font-display text-sm font-semibold tracking-tight">
+          {Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Stat({ label, value, icon: Icon, sub }) {
+  return (
+    <div className="flex flex-col gap-1.5 bg-card p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        {Icon ? <Icon className="h-4 w-4 text-muted-foreground" /> : null}
+      </div>
+      <p className="font-display text-2xl leading-none tabular-nums">{value}</p>
+      <div className="min-h-[1rem] text-xs text-muted-foreground">{sub}</div>
+    </div>
+  );
+}
+
+function GrowthBadge({ rate }) {
+  if (rate === null || rate === undefined) {
+    return <span>No prior period to compare</span>;
+  }
+  const up = rate >= 0;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 font-medium',
+        up ? 'text-emerald-600 dark:text-emerald-500' : 'text-destructive'
+      )}
+    >
+      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {up ? '+' : ''}
+      {rate}%
+      <span className="font-normal text-muted-foreground">vs prev</span>
+    </span>
+  );
+}
+
+function RankList({ items, emptyLabel }) {
+  if (!items || items.length === 0) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyLabel}</p>;
+  }
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={item.key ?? i} className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              {item.leading}
+              <span className={cn('truncate', item.mono && 'font-mono text-xs')} title={item.label}>
+                {item.label}
+              </span>
+            </span>
+            <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
+              {item.value.toLocaleString()} · {item.percentage}%
+            </span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${Math.max(2, Math.min(100, item.percentage))}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HourlyBars({ hours, formatTime }) {
+  if (!hours || hours.length === 0) {
+    return <p className="py-6 text-center text-sm text-muted-foreground">No hourly data yet.</p>;
+  }
+  const max = Math.max(1, ...hours.map((h) => h.clicks));
+  const peak = hours.reduce((best, h) => (h.clicks > best.clicks ? h : best), hours[0]);
+  return (
+    <div>
+      <div className="flex h-28 items-end gap-[3px]">
+        {hours.map((h) => (
+          <div
+            key={h.hour}
+            className="flex-1 rounded-sm bg-primary transition-opacity hover:opacity-70"
+            style={{
+              height: `${Math.max(h.clicks > 0 ? 4 : 2, (h.clicks / max) * 100)}%`,
+              opacity: h.clicks === 0 ? 0.12 : 1,
+            }}
+            title={`${formatTime(h.hour)} — ${h.clicks} ${h.clicks === 1 ? 'click' : 'clicks'}`}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+        <span>12a</span>
+        <span>6a</span>
+        <span>12p</span>
+        <span>6p</span>
+        <span>11p</span>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Peak at{' '}
+        <span className="font-medium text-foreground">
+          {peak.clicks > 0 ? formatTime(peak.hour) : '—'}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function WeekdayHeatmap({ heatmap, formatTime }) {
+  if (!heatmap?.cells?.length || heatmap.max <= 0) {
+    return (
+      <p className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+        Not enough data yet — this fills in as clicks come in.
+      </p>
+    );
+  }
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[560px]">
+          <div className="mb-1 grid grid-cols-[2rem_repeat(24,minmax(0,1fr))] gap-1">
+            <div />
+            {Array.from({ length: 24 }, (_, h) => (
+              <div key={h} className="text-center text-[10px] tabular-nums text-muted-foreground">
+                {h % 3 === 0 ? h : ''}
+              </div>
+            ))}
+          </div>
+          {heatmap.cells.map((row, dayIndex) => (
+            <div
+              key={dayIndex}
+              className="mb-1 grid grid-cols-[2rem_repeat(24,minmax(0,1fr))] items-center gap-1"
+            >
+              <div className="pr-1 text-right text-[11px] text-muted-foreground">
+                {heatmap.days[dayIndex]}
+              </div>
+              {row.map((count, hourIndex) => {
+                const intensity = count / heatmap.max;
+                return (
+                  <div
+                    key={hourIndex}
+                    title={`${heatmap.days[dayIndex]} ${formatTime(hourIndex)} — ${count} ${
+                      count === 1 ? 'click' : 'clicks'
+                    }`}
+                    className={cn('h-5 rounded-sm', count === 0 ? 'bg-muted/50' : 'bg-primary')}
+                    style={count === 0 ? undefined : { opacity: 0.18 + intensity * 0.82 }}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+        <span>Less</span>
+        {[0.2, 0.45, 0.7, 0.85, 1].map((s) => (
+          <div key={s} className="h-3 w-3 rounded-sm bg-primary" style={{ opacity: s }} />
+        ))}
+        <span>More</span>
+      </div>
+    </div>
+  );
+}
+
+function deviceItems(devices) {
+  return (devices || [])
+    .filter((d) => d.count > 0)
+    .map((d) => {
+      const Icon = DEVICE_ICONS[d.type] || HelpCircle;
+      return {
+        key: d.type,
+        leading: <Icon className="h-3.5 w-3.5 text-muted-foreground" />,
+        label: d.type || 'Unknown',
+        value: d.count,
+        percentage: d.percentage,
+      };
+    });
+}
+
+function SkeletonPage() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="space-y-3 bg-card p-5">
+            <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+            <div className="h-7 w-16 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg border bg-card p-5">
+        <div className="mb-4 h-4 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-64 w-full animate-pulse rounded bg-muted/60" />
       </div>
     </div>
   );

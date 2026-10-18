@@ -7,21 +7,33 @@ import SmoothScrollProvider from '@/components/SmoothScrollProvider';
 import { Provider as TextWrapProvider } from 'react-wrap-balancer';
 import { getServerSession } from 'next-auth';
 
-import { Inter, Poppins } from 'next/font/google';
+import { Outfit, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap', preload: true });
-const poppins = Poppins({
+const outfit = Outfit({
   subsets: ['latin'],
-  weight: ['600', '700'],
-  variable: '--font-poppins',
+  display: 'swap',
+  preload: true,
+  variable: '--font-outfit',
 });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-space-grotesk',
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jetbrains',
+});
+
 export const metadata = {
   metadataBase: new URL('https://urlsnip.vercel.app'),
   title: {
-    default: 'LinkSnip - Modern URL Shortener',
+    default: 'LinkSnip - URL shortener with analytics',
     template: '%s | LinkSnip',
   },
-  description: 'Shorten, track, and manage your URLs with style.',
+  description:
+    'Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard.',
   keywords: [
     'URL shortener',
     'link tracker',
@@ -30,18 +42,18 @@ export const metadata = {
     'short link',
     'track URL',
   ],
-  themeColor: '#000000',
   openGraph: {
-    title: 'LinkSnip - Modern URL Shortener',
-    description: 'Shorten, track, and manage your URLs with style.',
+    title: 'LinkSnip - URL shortener with analytics',
+    description:
+      'Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard.',
     url: 'https://urlsnip.vercel.app',
     siteName: 'LinkSnip',
     images: [
       {
-        url: 'https://urlsnip.vercel.app/og-image.jpg', // Add your OG image
+        url: 'https://urlsnip.vercel.app/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'LinkSnip - Modern URL Shortener',
+        alt: 'LinkSnip - URL shortener with analytics',
       },
     ],
     type: 'website',
@@ -49,11 +61,27 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'LinkSnip',
-    description: 'Shorten, track, and manage your URLs with style.',
-    creator: '@yourhandle', // Replace or remove
+    description:
+      'Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard.',
     images: ['https://urlsnip.vercel.app/og-image.png'],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
+
+export const viewport = {
+  themeColor: '#0a0b10',
+};
+
 export default async function RootLayout({ children }) {
   const session = await getServerSession();
   return (
@@ -61,9 +89,11 @@ export default async function RootLayout({ children }) {
       <head>
         <meta name="application-name" content="LinkSnip" />
         <meta name="apple-mobile-web-app-title" content="LinkSnip" />
-        <meta name="description" content="LinkSnip - Modern URL Shortener" />
+        <meta
+          name="description"
+          content="Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard."
+        />
         {/* Android  & Ios Support */}
-
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
@@ -93,43 +123,54 @@ export default async function RootLayout({ children }) {
 
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="theme-color" content="#0a0b10" />
+        <meta name="msapplication-TileColor" content="#0a0b10" />
 
         {/* Open Graph Meta Tags (SEO + Social) */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://urlsnip.vercel.app/" />
-        <meta property="og:title" content="LinkSnip - Modern URL Shortener" />
+        <meta
+          property="og:title"
+          content="LinkSnip - URL shortener with analytics"
+        />
         <meta
           property="og:description"
-          content="Shorten, track, and manage your URLs with style."
+          content="Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard."
         />
         <meta property="og:image" content="/og-image.png" />
 
         {/* Twitter Card Meta */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content="https://urlsnip.vercel.app/" />
-        <meta name="twitter:title" content="LinkSnip - Modern URL Shortener" />
+        <meta
+          name="twitter:title"
+          content="LinkSnip - URL shortener with analytics"
+        />
         <meta
           name="twitter:description"
-          content="Shorten, track, and manage your URLs with style."
+          content="Shorten URLs and track every click. Analytics, QR codes, passwords and link expiry in one clean dashboard."
         />
         <meta name="twitter:image" content="/og-image.png" />
+        
+        {/* Structured Data */}
         <script type="application/ld+json">
-          {`
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "LinkSnip",
-  "url": "https://urlsnip.vercel.app",
-  "screenshot": [
-    "https://urlsnip.vercel.app/screenshots/homepage.png",
-    "https://urlsnip.vercel.app/screenshots/dashboard.png"
-  ]
-}
-`}
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "LinkSnip",
+            "url": "https://urlsnip.vercel.app",
+            "description": "Modern URL shortener with analytics",
+            "applicationCategory": "Utilities",
+            "operatingSystem": "All",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          })}
         </script>
 
+        {/* Theme Script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -147,7 +188,15 @@ export default async function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={` ${poppins.variable} ${inter.className}`}>
+      <body
+        className={`${outfit.variable} ${spaceGrotesk.variable} ${jetbrains.variable}`}
+      >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         <QueryProvider>
           <Provider session={session}>
             <ThemeProvider

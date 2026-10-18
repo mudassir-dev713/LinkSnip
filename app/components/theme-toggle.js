@@ -1,76 +1,63 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
-import { flushSync } from 'react-dom';
+import React from 'react';
+import { MoonIcon, SunIcon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
-import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
+import { createAnimation } from '@/theme/theme-animations';
 
-export const ThemeToggle = ({ className, duration = 400, ...props }) => {
-  const [isDark, setIsDark] = useState(false);
-  const buttonRef = useRef(null);
+export function ThemeToggle({ variant = 'circle-blur', start = 'top-left' }) {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
 
-  useEffect(() => {
-    const updateTheme = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
+  React.useEffect(() => setMounted(true), []);
 
-    updateTheme();
+  const updateStyles = React.useCallback((css) => {
+    if (typeof window === 'undefined') return;
 
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
+    let styleElement = document.getElementById('theme-transition-styles');
 
-    return () => observer.disconnect();
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = 'theme-transition-styles';
+      document.head.appendChild(styleElement);
+    }
+
+    styleElement.textContent = css;
   }, []);
 
-  const toggleTheme = useCallback(async () => {
-    if (!buttonRef.current) return;
+  const toggleTheme = React.useCallback(() => {
+    const animation = createAnimation(variant, start);
 
-    await document.startViewTransition(() => {
-      flushSync(() => {
-        const newTheme = !isDark;
-        setIsDark(newTheme);
-        document.documentElement.classList.toggle('dark');
-        localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-      });
-    }).ready;
+    updateStyles(animation.css);
 
-    const { top, left, width, height } =
-      buttonRef.current.getBoundingClientRect();
-    const x = left + width / 2;
-    const y = top + height / 2;
-    const maxRadius = Math.hypot(
-      Math.max(left, window.innerWidth - left),
-      Math.max(top, window.innerHeight - top),
-    );
+    const switchTheme = () => {
+      setTheme(theme === 'light' ? 'dark' : 'light');
+    };
 
-    document.documentElement.animate(
-      {
-        clipPath: [
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${maxRadius}px at ${x}px ${y}px)`,
-        ],
-      },
-      {
-        duration,
-        easing: 'ease-in-out',
-        pseudoElement: '::view-transition-new(root)',
-      },
-    );
-  }, [isDark, duration]);
+    if (!document.startViewTransition) {
+      switchTheme();
+      return;
+    }
+    document.startViewTransition(switchTheme);
+  }, [theme, setTheme, variant, start, updateStyles]);
 
   return (
-    <button
-      ref={buttonRef}
+    <Button
       onClick={toggleTheme}
-      className={cn(className)}
-      {...props}
+      variant="ghost"
+      size="icon"
+      className="relative"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      name="Theme Toggle Button"
     >
-      {isDark ? <Sun /> : <Moon />}
-      <span className="sr-only">Toggle theme</span>
-    </button>
+      {mounted && (
+        <>
+          <SunIcon className="h-[1.15rem] w-[1.15rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <MoonIcon className="absolute h-[1.15rem] w-[1.15rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </>
+      )}
+    </Button>
   );
-};
+}

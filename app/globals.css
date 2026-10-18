@@ -18,58 +18,58 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 99%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 99%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 217 91% 60%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.75rem;
+    --background: 210 20% 98%;
+    --foreground: 215 28% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 11%;
+    --primary: 187 80% 28%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 18% 95%;
+    --secondary-foreground: 215 24% 14%;
+    --muted: 210 18% 95%;
+    --muted-foreground: 215 12% 45%;
+    --accent: 210 18% 94%;
+    --accent-foreground: 215 24% 14%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 18% 90%;
+    --input: 214 18% 90%;
+    --ring: 187 80% 28%;
+    --chart-1: 187 80% 28%;
+    --chart-2: 217 55% 48%;
+    --chart-3: 38 78% 48%;
+    --chart-4: 345 60% 52%;
+    --chart-5: 215 14% 42%;
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 216 28% 6%;
+    --foreground: 210 20% 96%;
+    --card: 216 24% 8%;
+    --card-foreground: 210 20% 96%;
+    --popover: 216 24% 8%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 186 68% 48%;
+    --primary-foreground: 216 28% 6%;
+    --secondary: 215 20% 12%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 215 20% 12%;
+    --muted-foreground: 215 12% 64%;
+    --accent: 215 20% 14%;
+    --accent-foreground: 210 20% 96%;
+    --destructive: 0 58% 42%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 217 91% 60%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 215 18% 15%;
+    --input: 215 18% 15%;
+    --ring: 186 68% 48%;
+    --chart-1: 186 68% 48%;
+    --chart-2: 217 65% 62%;
+    --chart-3: 38 80% 58%;
+    --chart-4: 345 65% 64%;
+    --chart-5: 215 14% 58%;
   }
 }
 html,
@@ -86,14 +86,14 @@ html.lenis {
 
 @layer base {
   .prose-custom {
-    @apply prose prose-lg prose-headings:font-poppins prose-headings:text-gray-900 prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:ml-6 prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 max-w-none;
+    @apply prose prose-lg prose-headings:font-display prose-headings:text-foreground prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-muted-foreground prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:ml-6 prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground max-w-none;
   }
   * {
     @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
@@ -115,41 +115,67 @@ html.lenis {
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-border/80;
   }
+
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-200;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* dvh avoids the iOS Safari address-bar jump; 100vh fallback */
+  .min-h-dvh {
+    min-height: 100vh;
+  }
+
+  @supports (height: 100dvh) {
+    .min-h-dvh {
+      min-height: 100dvh;
+    }
+  }
+
+  .tabular-nums,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Subtle asymmetric ambient wash for hero / feature sections */
+  .hero-glow {
+    background:
+      radial-gradient(
+        ellipse 70% 55% at 12% 0%,
+        hsl(var(--primary) / 0.1),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 45% 40% at 88% 8%,
+        hsl(var(--primary) / 0.05),
+        transparent 65%
+      );
+  }
 }
 
-/* Custom gradient backgrounds */
-.bg-gradient-mesh {
-  background: radial-gradient(
-    ellipse 80% 80% at 50% -20%,
-    rgba(120, 119, 198, 0.3),
-    transparent
-  );
+/* Fine-grain noise overlay — breaks the flat digital surface */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .bg-gradient-radial {
   background: radial-gradient(ellipse at center, var(--tw-gradient-stops));
-}
-
-/* Dark mode specific styles */
-.dark {
-  --background: 0 0% 6.5%;
-  --card: 0 0% 8%;
-  --popover: 0 0% 8%;
-}
-
-.dark .bg-gradient-to-br {
-  background: linear-gradient(
-    to bottom right,
-    hsl(0 0% 6.5%),
-    hsl(0 0% 6.5%),
-    hsl(217 91% 60% / 0.05)
-  );
 }
 
 /* Glass morphism effect */
@@ -178,6 +204,16 @@ html.lenis {
   animation: spin 1s linear infinite;
 }
 
+/* Redirect interstitial progress bar (matches the 3s auto-redirect) */
+@keyframes redirect-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* Focus styles */
 .focus-visible {
   @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
@@ -193,8 +229,49 @@ html.lenis {
   opacity: 1;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
+@supports (view-transition-name: none) {
+  .page-transition {
+    transition: none;
+  }
+
+  ::view-transition-group(root) {
+    animation-duration: 0.7s;
+    animation-timing-function: linear(
+      0 0%,
+      0.2342 12.49%,
+      0.4374 24.99%,
+      0.6093 37.49%,
+      0.6835 43.74%,
+      0.7499 49.99%,
+      0.8086 56.25%,
+      0.8593 62.5%,
+      0.9023 68.75%,
+      0.9375 75%,
+      0.9648 81.25%,
+      0.9844 87.5%,
+      0.9961 93.75%,
+      1 100%
+    );
+  }
+
+  ::view-transition-new(root) {
+    mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><filter id="blur"><feGaussianBlur stdDeviation="2"/></filter></defs><circle cx="0" cy="0" r="18" fill="white" filter="url(%23blur)"/></svg>')
+      top left / 0 no-repeat;
+    mask-origin: content-box;
+    animation: scale 1s;
+    transform-origin: top left;
+  }
+
+  ::view-transition-old(root),
+  .dark::view-transition-old(root) {
+    animation: scale 1s;
+    transform-origin: top left;
+    z-index: -1;
+  }
+
+  @keyframes scale {
+    to {
+      mask-size: 350vmax;
+    }
+  }
 }
