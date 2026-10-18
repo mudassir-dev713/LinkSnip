@@ -19,19 +19,6 @@ const nextConfig = {
   // geoip-lite loads its .dat databases from disk at runtime — bundling it
   // breaks the file paths, so require it natively instead.
   serverExternalPackages: ['geoip-lite'],
-  // Optimize bundle size
-  webpack: (config, { dev, isServer }) => {
-    // Replace React with Preact only in client production builds
-    if (!dev && !isServer) {
-      Object.assign(config.resolve.alias, {
-        react: 'preact/compat',
-        'react-dom/test-utils': 'preact/test-utils',
-        'react-dom': 'preact/compat',
-      });
-    }
-
-    return config;
-  },
   // Enable compression
   compress: true,
   // Optimize react production build
